@@ -186,7 +186,7 @@ func TestMain_Integration(t *testing.T) {
 
 			fmt.Println()
 			for i, g := range groups {
-				avg := g.TotalTime / float64(g.Count)
+				avg := g.TotalTime / float32(g.Count)
 				fmt.Printf("%d: %s, count: %d, avg: %.2f, min: %.2f, max %.2f\n",
 					i+1, g.Timestamp.Format(time.RFC3339), g.Count, avg, g.MinTime, g.MaxTime)
 				// for _, key := range g.Keys {
@@ -199,12 +199,6 @@ func TestMain_Integration(t *testing.T) {
 	})
 }
 
-const (
-	PingResWidth     = 25
-	PingTimeWidth    = 15
-	PingResTimeWidth = 8
-)
-
 // seedDB will seed the db with 24 hours of pings for every second
 // it adds 1441 rows to the pings_by_minute bucket
 func seedDB() {
@@ -215,8 +209,8 @@ func seedDB() {
 	}
 
 	ip := "127.0.0.1"
-	max := 15.0
-	min := 5.0
+	max := float32(15.0)
+	min := float32(5.0)
 	timestamp := time.Now().Add(-24 * time.Hour)
 
 	err = db.Update(func(tx *bolt.Tx) error {
@@ -227,7 +221,7 @@ func seedDB() {
 
 		for x := 0; x < 86400; x++ {
 			pingStartTime := timestamp.Add(time.Duration(x) * time.Second)
-			resTime := rand.Float64()*(max-min) + min
+			resTime := rand.Float32()*(max-min) + min
 
 			key := CreatePingKey(ip, pingStartTime)
 			val, err := SerializePingRes(pingStartTime, resTime)
@@ -266,17 +260,23 @@ func CreatePingKey(ip string, pingStartTime time.Time) []byte {
 	return []byte(key)
 }
 
-// SerializePingRes converts startTime and resTime to a 25 byte array
+const (
+	PingResWidth     = 21
+	PingTimeWidth    = 15
+	PingResTimeWidth = 4
+)
+
+// SerializePingRes converts startTime and resTime to a 21 byte array
 // startTime should be the time the ping was initated
 // resTime is the time it took to return the ping packet
 // endTime = startTime + resTime
-// Format: 25 bytes
-// | 15 bytes  | 1 byte  | 8 bytes | 1 byte
+// Format: 21 bytes
+// | 15 bytes  | 1 byte  | 4 bytes | 1 byte
 // | startTime | padding | resTime | padding
 // TODO Convert to PingRes struct w/ method MarshalBinary()
-func SerializePingRes(startTime time.Time, resTime float64) ([]byte, error) {
+func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
 	buff := make([]byte, PingResWidth)
-	floatBytes := Float64bytes(resTime)
+	floatBytes := Float32bytes(resTime)
 	timeBytes, err := startTime.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't marshal startTime as binary: %s", err)
@@ -284,7 +284,8 @@ func SerializePingRes(startTime time.Time, resTime float64) ([]byte, error) {
 
 	// 15 bytes for time of ping, 8 bytes for response time, 1 byte padding between fields
 	copy(buff[0:PingTimeWidth], timeBytes)
-	copy(buff[16:24], floatBytes)
+	responseTimeOffset := PingTimeWidth + 1
+	copy(buff[responseTimeOffset:responseTimeOffset+PingResTimeWidth], floatBytes)
 
 	return buff, nil
 }
@@ -309,17 +310,13 @@ func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) == -1; k, v = c.Next() {
 			// keyParts := strings.Split(string(k), "_")
 
-			// the value for each key contains all the data points for one minute
-			// each data point occupies 25 bytes, we loop through each 25 byte chunk
-			// the first 15 bytes are used for date/time of the ping,
-			// the next 8 are for response time, and 1 byte of padding b/t fields
 			for i := 0; i < len(v); i += PingResWidth {
 				pingTime := &time.Time{}
 				pingTimeOffset := i + PingTimeWidth
 				pingTime.UnmarshalBinary(v[i:pingTimeOffset])
 
 				responseTimeOffset := i + PingTimeWidth + 1
-				resTime := Float64frombytes(v[responseTimeOffset : responseTimeOffset+8])
+				resTime := Float32frombytes(v[responseTimeOffset : responseTimeOffset+PingResTimeWidth])
 
 				// on first loop assign the group
 				if count == 0 {
@@ -362,7 +359,7 @@ func DeleteDB() {
 const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
-func GetPing(id string) (float64, error) {
+func GetPing(id string) (float32, error) {
 	if len(id) == 0 {
 		return 0, errors.New("id can't be empty")
 	}
@@ -373,7 +370,7 @@ func GetPing(id string) (float64, error) {
 		log.Fatal(err)
 	}
 
-	var pingTime float64
+	var pingTime float32
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings"))
 		if pings == nil {
@@ -385,7 +382,7 @@ func GetPing(id string) (float64, error) {
 			return errors.New(KeyNotFoundError)
 		}
 
-		pingTime = Float64frombytes(pt)
+		pingTime = Float32frombytes(pt)
 		return nil
 	})
 
@@ -396,7 +393,7 @@ func GetPing(id string) (float64, error) {
 	return pingTime, nil
 }
 
-func SavePing(id string, resTime float64) error {
+func SavePing(id string, resTime float32) error {
 	if len(id) == 0 {
 		return errors.New("id can't be empty")
 	}
@@ -413,7 +410,7 @@ func SavePing(id string, resTime float64) error {
 			return fmt.Errorf("%s: pings", BucketNotFoundError)
 		}
 
-		err = pings.Put([]byte(id), Float64bytes(resTime))
+		err = pings.Put([]byte(id), Float32bytes(resTime))
 		if err != nil {
 			return fmt.Errorf("Error while saving to pings bucket: %s", err)
 		}
@@ -424,45 +421,45 @@ func SavePing(id string, resTime float64) error {
 	return err
 }
 
-func SavePingResponse(pr *PingResponse) error {
-	if len(pr.ID) == 0 {
-		return errors.New("Pingresponse id can't be empty")
-	}
+// func SavePingResponse(pr *PingResponse) error {
+// 	if len(pr.ID) == 0 {
+// 		return errors.New("Pingresponse id can't be empty")
+// 	}
+//
+// 	// Open the my.db data file in your current directory. It will be created if it doesn't exist.
+// 	db, err := bolt.Open("pinghist.db", 0600, nil)
+// 	defer db.Close()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+//
+// 	err = db.Update(func(tx *bolt.Tx) error {
+// 		hosts := tx.Bucket([]byte("hosts"))
+// 		if hosts == nil {
+// 			return errors.New("Can't find hosts bucket")
+// 		}
+// 		pings := tx.Bucket([]byte("pings"))
+// 		if pings == nil {
+// 			return errors.New("Can't find pings bucket")
+// 		}
+//
+// 		err := hosts.Put([]byte(pr.IP), []byte(pr.Host))
+// 		if err != nil {
+// 			return fmt.Errorf("Error while saving hosts bucket: %s", err)
+// 		}
+//
+// 		err = pings.Put([]byte(pr.ID), Float32bytes(pr.Time))
+// 		if err != nil {
+// 			return fmt.Errorf("Error while saving to pings bucket: %s", err)
+// 		}
+//
+// 		return nil
+// 	})
+//
+// 	return err
+// }
 
-	// Open the my.db data file in your current directory. It will be created if it doesn't exist.
-	db, err := bolt.Open("pinghist.db", 0600, nil)
-	defer db.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		hosts := tx.Bucket([]byte("hosts"))
-		if hosts == nil {
-			return errors.New("Can't find hosts bucket")
-		}
-		pings := tx.Bucket([]byte("pings"))
-		if pings == nil {
-			return errors.New("Can't find pings bucket")
-		}
-
-		err := hosts.Put([]byte(pr.IP), []byte(pr.Host))
-		if err != nil {
-			return fmt.Errorf("Error while saving hosts bucket: %s", err)
-		}
-
-		err = pings.Put([]byte(pr.ID), Float64bytes(pr.Time))
-		if err != nil {
-			return fmt.Errorf("Error while saving to pings bucket: %s", err)
-		}
-
-		return nil
-	})
-
-	return err
-}
-
-func NewPingGroup(timestamp time.Time, responseTime float64) *PingGroup {
+func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
 	pg := &PingGroup{
 		Timestamp: timestamp,
 		TotalTime: responseTime,
@@ -477,9 +474,9 @@ func NewPingGroup(timestamp time.Time, responseTime float64) *PingGroup {
 type PingGroup struct {
 	Timestamp time.Time
 	Count     int // The # of pings in the group
-	TotalTime float64
-	MaxTime   float64
-	MinTime   float64
+	TotalTime float32
+	MaxTime   float32
+	MinTime   float32
 	keys      []string // used for debugging
 }
 
@@ -505,15 +502,15 @@ func CreateDB(path string) {
 	})
 }
 
-func Float64frombytes(bytes []byte) float64 {
-	bits := binary.LittleEndian.Uint64(bytes)
-	float := math.Float64frombits(bits)
+func Float32frombytes(bytes []byte) float32 {
+	bits := binary.LittleEndian.Uint32(bytes)
+	float := math.Float32frombits(bits)
 	return float
 }
 
-func Float64bytes(float float64) []byte {
-	bits := math.Float64bits(float)
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, bits)
+func Float32bytes(float float32) []byte {
+	bits := math.Float32bits(float)
+	bytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bytes, bits)
 	return bytes
 }
