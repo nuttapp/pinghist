@@ -7,6 +7,7 @@ lib-cov
 *.pid
 *.gz
 *.tmp
+*.db
 
 artifacts
 coverage
@@ -23,3 +24,4 @@ tags
 .agignore
 
 xunit.xml
+&*.db
