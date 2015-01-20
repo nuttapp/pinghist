@@ -180,9 +180,9 @@ func TestMain_Integration(t *testing.T) {
 
 		Convey("TestGetPings()", func() {
 			end := time.Now()
-			start := end.Add(-1 * time.Hour)
+			start := end.Add(-26 * time.Hour)
 
-			groups, err := GetPings2("127.0.0.1", start, end)
+			groups, err := GetPings("127.0.0.1", start, end, 1*time.Hour)
 
 			fmt.Println()
 			for i, g := range groups {
@@ -211,7 +211,7 @@ func seedDB() {
 	ip := "127.0.0.1"
 	max := float32(15.0)
 	min := float32(5.0)
-	timestamp := time.Now().Add(-24 * time.Hour)
+	timestamp := time.Now().Add(-86400 * time.Second)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
@@ -306,7 +306,7 @@ func DeserializePingRes(data []byte) (*time.Time, float32, error) {
 	return pingTime, resTime, nil
 }
 
-func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
+func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
@@ -318,6 +318,7 @@ func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
 	err = db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket([]byte("pings_by_minute")).Cursor()
 
+		groupSeconds := groupBy.Seconds()
 		min := []byte(ipAddress + "_" + start.Format(time.RFC3339))
 		max := []byte(ipAddress + "_" + end.Format(time.RFC3339))
 		count := 0
@@ -337,7 +338,7 @@ func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
 					group = NewPingGroup(*pingTime, resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
-				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < 3600 { // add to group when it's in the range
+				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
 					group.TotalTime += resTime
 					group.Count++
 					if resTime < group.MinTime {
