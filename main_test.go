@@ -282,7 +282,6 @@ func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
 		return nil, fmt.Errorf("Couldn't marshal startTime as binary: %s", err)
 	}
 
-	// 15 bytes for time of ping, 8 bytes for response time, 1 byte padding between fields
 	copy(buff[0:PingTimeWidth], timeBytes)
 	responseTimeOffset := PingTimeWidth + 1
 	copy(buff[responseTimeOffset:responseTimeOffset+PingResTimeWidth], floatBytes)
