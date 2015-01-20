@@ -261,9 +261,9 @@ func CreatePingKey(ip string, pingStartTime time.Time) []byte {
 }
 
 const (
-	PingResWidth     = 21
-	PingTimeWidth    = 15
-	PingResTimeWidth = 4
+	PingResByteCount          = 21 // total bytes
+	PingResTimestampByteCount = 15 // time.Time
+	PingResTimeByteCount      = 4  // float32
 )
 
 // SerializePingRes converts startTime and resTime to a 21 byte array
@@ -275,18 +275,35 @@ const (
 // | startTime | padding | resTime | padding
 // TODO Convert to PingRes struct w/ method MarshalBinary()
 func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
-	buff := make([]byte, PingResWidth)
+	buff := make([]byte, PingResByteCount)
 	floatBytes := Float32bytes(resTime)
 	timeBytes, err := startTime.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't marshal startTime as binary: %s", err)
 	}
 
-	copy(buff[0:PingTimeWidth], timeBytes)
-	responseTimeOffset := PingTimeWidth + 1
-	copy(buff[responseTimeOffset:responseTimeOffset+PingResTimeWidth], floatBytes)
+	copy(buff[0:PingResTimestampByteCount], timeBytes)
+	responseTimeOffset := PingResTimestampByteCount + 1
+	copy(buff[responseTimeOffset:responseTimeOffset+PingResTimeByteCount], floatBytes)
 
 	return buff, nil
+}
+
+// DeserializePingRes does the opposite of SerializePingRes
+func DeserializePingRes(data []byte) (*time.Time, float32, error) {
+	pingTime := &time.Time{}
+	if len(data) != PingResByteCount {
+		return nil, 0, errors.New("Invalid data length")
+	}
+	err := pingTime.UnmarshalBinary(data[0:PingResTimestampByteCount])
+	if err != nil {
+		return nil, 0, errors.New("Couldn't unmarshal bytes to time")
+	}
+
+	responseTimeOffset := PingResTimestampByteCount + 1
+	resTime := Float32frombytes(data[responseTimeOffset : responseTimeOffset+PingResTimeByteCount])
+
+	return pingTime, resTime, nil
 }
 
 func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
@@ -309,13 +326,11 @@ func GetPings2(ipAddress string, start, end time.Time) ([]*PingGroup, error) {
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) == -1; k, v = c.Next() {
 			// keyParts := strings.Split(string(k), "_")
 
-			for i := 0; i < len(v); i += PingResWidth {
-				pingTime := &time.Time{}
-				pingTimeOffset := i + PingTimeWidth
-				pingTime.UnmarshalBinary(v[i:pingTimeOffset])
-
-				responseTimeOffset := i + PingTimeWidth + 1
-				resTime := Float32frombytes(v[responseTimeOffset : responseTimeOffset+PingResTimeWidth])
+			for i := 0; i < len(v); i += PingResByteCount {
+				pingTime, resTime, err := DeserializePingRes(v[i : i+PingResByteCount])
+				if err != nil {
+					return err
+				}
 
 				// on first loop assign the group
 				if count == 0 {
