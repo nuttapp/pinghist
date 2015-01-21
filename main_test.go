@@ -302,7 +302,7 @@ const (
 )
 
 // SerializePingRes converts startTime and resTime to a 21 byte array
-// startTime should be the time the ping was initated
+// startTime is  the time the ping was initated
 // resTime is the amount of time it took to return the ping packet
 // endTime = startTime + resTime
 // Format: 21 bytes
