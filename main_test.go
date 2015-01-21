@@ -155,7 +155,7 @@ func TestMain_Integration(t *testing.T) {
 				keys := getPingKeys()
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
-			Convey("Should create one key when pings are in the same minute", func() {
+			Convey("Should create one key when pings are < 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Second) // add a second
 
 				err := SavePing(ip, startTime, responseTime)
@@ -199,15 +199,15 @@ func TestMain_Integration(t *testing.T) {
 
 			So(totalPings, ShouldEqual, 86400) // there should 1 ping for every second in a day
 
-			fmt.Println()
-			for i, g := range groups {
-				avg := g.TotalTime / float32(g.Count)
-				fmt.Printf("%d: %s, count: %d, avg: %.2f, min: %.2f, max %.2f\n",
-					i+1, g.Timestamp.Format(time.RFC3339), g.Count, avg, g.MinTime, g.MaxTime)
-				// for _, key := range g.Keys {
-				// 	fmt.Printf("key: %s\n", key)
-				// }
-			}
+			// fmt.Println()
+			// for i, g := range groups {
+			// 	avg := g.TotalTime / float32(g.Count)
+			// 	fmt.Printf("%d: %s, count: %d, avg: %.2f, min: %.2f, max %.2f\n",
+			// 		i+1, g.Timestamp.Format(time.RFC3339), g.Count, avg, g.MinTime, g.MaxTime)
+			// 	// for _, key := range g.Keys {
+			// 	// 	fmt.Printf("key: %s\n", key)
+			// 	// }
+			// }
 		})
 	})
 }
