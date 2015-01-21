@@ -104,8 +104,7 @@ rtt min/avg/max/mdev = 1.674/1.674/1.674/0.000 ms`),
 }
 
 func TestMain_Integration(t *testing.T) {
-	CreateDB("pinghist.db")
-	seedDB()
+	createTestDB()
 
 	Convey("main (integration)", t, func() {
 		// u, err := user.Current()
@@ -138,47 +137,54 @@ func TestMain_Integration(t *testing.T) {
 			})
 		})
 
-		SkipConvey("SavePing()", func() {
-			Convey("Should save ping", func() {
-				id := NewPingID("127.0.0.1")
-				err := SavePing(id, 1.1)
+		Convey("SavePing()", func() {
+			resetTestDB() // These will be run for *every* convey below, which resets the DB between tests
+			ip := "127.0.0.1"
+			l, _ := time.LoadLocation("UTC")
+			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
+			responseTime := float32(1.1)
+
+			Convey("Should create one key w/ one ping", func() {
+				err := SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				resTime, err := GetPing(id)
-				So(err, ShouldBeNil)
-				So(resTime, ShouldEqual, 1.1)
+				keys := getPingKeys()
+				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
-			Convey("Should update ping", func() {
-				id := NewPingID("127.0.0.1")
+			Convey("Should create one key when pings are in the same minute", func() {
+				startTime2 := startTime.Add(1 * time.Second) // add a second
 
-				err := SavePing(id, 1.1)
-				So(err, ShouldBeNil)
-				err = SavePing(id, 1.2)
+				err := SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				resTime, err := GetPing(id)
+				err = SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
-				So(resTime, ShouldEqual, 1.2)
+
+				keys := getPingKeys()
+				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
+			})
+			Convey("Should create 2 keys when pings are > 1 minute apart", func() {
+				startTime2 := startTime.Add(1 * time.Minute) // add a minute
+
+				err := SavePing(ip, startTime, responseTime)
+				So(err, ShouldBeNil)
+
+				err = SavePing(ip, startTime2, responseTime)
+				So(err, ShouldBeNil)
+
+				keys := getPingKeys()
+				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
+				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
+			})
+
+			Reset(func() {
+				resetTestDB()
 			})
 		})
 
-		SkipConvey("GetPing()", func() {
-			Convey("Should return saved ping", func() {
-				id := NewPingID("127.0.0.1")
-				err := SavePing(id, 1.1)
-				So(err, ShouldBeNil)
+		Convey("GetPings()", func() {
+			seedDB()
 
-				resTime, err := GetPing(id)
-				So(err, ShouldBeNil)
-				So(resTime, ShouldEqual, 1.1)
-			})
-			Convey("Should return KeyNotFoundError", func() {
-				_, err := GetPing("20394823094823094")
-				So(err.Error(), ShouldEqual, KeyNotFoundError)
-			})
-		})
-
-		Convey("TestGetPings()", func() {
 			end := time.Now()
 			start := end.Add(-26 * time.Hour)
 
@@ -209,7 +215,7 @@ func seedDB() {
 	}
 
 	ip := "127.0.0.1"
-	max := float32(15.0)
+	max := float32(100.0)
 	min := float32(5.0)
 	timestamp := time.Now().Add(-86400 * time.Second)
 
@@ -223,7 +229,7 @@ func seedDB() {
 			pingStartTime := timestamp.Add(time.Duration(x) * time.Second)
 			resTime := rand.Float32()*(max-min) + min
 
-			key := CreatePingKey(ip, pingStartTime)
+			key := GetPingKey(ip, pingStartTime)
 			val, err := SerializePingRes(pingStartTime, resTime)
 			if err != nil {
 				return err
@@ -249,9 +255,31 @@ func seedDB() {
 	}
 }
 
-// CreatePingKey creates a key for the given ip and time, seconds and nanoseconds are removed
+func getPingKeys() []string {
+	db, err := bolt.Open("pinghist.db", 0600, nil)
+	defer db.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	keys := []string{}
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("pings_by_minute"))
+		c := b.Cursor()
+
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			keys = append(keys, string(k))
+		}
+
+		return nil
+	})
+
+	return keys
+}
+
+// GetPingKey returns a key for the given ip and time, seconds and nanoseconds are removed
 // from pingStartTime in order to group pings by minute
-func CreatePingKey(ip string, pingStartTime time.Time) []byte {
+func GetPingKey(ip string, pingStartTime time.Time) []byte {
 	keyTimestamp := time.Date(pingStartTime.Year(), pingStartTime.Month(),
 		pingStartTime.Day(), pingStartTime.Hour(), pingStartTime.Minute(), 0, 0, pingStartTime.Location())
 
@@ -316,7 +344,11 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 	groups := make([]*PingGroup, 0, 5)
 
 	err = db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("pings_by_minute")).Cursor()
+		pings := tx.Bucket([]byte("pings_by_minute"))
+		if pings == nil {
+			return errors.New("Couldn't find pings_by_minute bucket")
+		}
+		c := pings.Cursor()
 
 		groupSeconds := groupBy.Seconds()
 		min := []byte(ipAddress + "_" + start.Format(time.RFC3339))
@@ -408,9 +440,9 @@ func GetPing(id string) (float32, error) {
 	return pingTime, nil
 }
 
-func SavePing(id string, resTime float32) error {
-	if len(id) == 0 {
-		return errors.New("id can't be empty")
+func SavePing(ip string, starTime time.Time, responseTime float32) error {
+	if len(ip) == 0 {
+		return errors.New("ip can't be empty")
 	}
 
 	db, err := bolt.Open("pinghist.db", 0600, nil)
@@ -420,14 +452,30 @@ func SavePing(id string, resTime float32) error {
 	}
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		pings := tx.Bucket([]byte("pings"))
+		pings := tx.Bucket([]byte("pings_by_minute"))
 		if pings == nil {
-			return fmt.Errorf("%s: pings", BucketNotFoundError)
+			return fmt.Errorf("%s: pings_by_minute", BucketNotFoundError)
 		}
 
-		err = pings.Put([]byte(id), Float32bytes(resTime))
+		key := GetPingKey(ip, starTime)
+		val, err := SerializePingRes(starTime, responseTime)
 		if err != nil {
-			return fmt.Errorf("Error while saving to pings bucket: %s", err)
+			return err
+		}
+
+		v := pings.Get(key)
+		if v != nil {
+			// Do not change the byte array that boltdb gives us, make our own new one
+			// + the extra room for the next value
+			newVal := make([]byte, 0, len(val)+PingResByteCount)
+			newVal = append(newVal, v...)
+			newVal = append(newVal, val...)
+			val = newVal
+		}
+
+		err = pings.Put(key, val)
+		if err != nil {
+			return fmt.Errorf("Error writing key: %s", err)
 		}
 
 		return nil
@@ -495,9 +543,11 @@ type PingGroup struct {
 	keys      []string // used for debugging
 }
 
-// CreateDB will create an empty Bolt DB and buckets
-func CreateDB(path string) {
-	db, err := bolt.Open(path, 0600, nil)
+var boltBuckets = []string{"hosts", "pings_by_minute"}
+
+// createTestDB will create an empty Bolt DB and buckets
+func createTestDB() {
+	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -505,8 +555,7 @@ func CreateDB(path string) {
 
 	db.Update(func(tx *bolt.Tx) error {
 		// create buckets
-		buckets := []string{"hosts", "pings_by_minute"}
-		for _, bucketName := range buckets {
+		for _, bucketName := range boltBuckets {
 			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
@@ -515,6 +564,26 @@ func CreateDB(path string) {
 
 		return nil
 	})
+}
+
+func resetTestDB() {
+	db, err := bolt.Open("pinghist.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db.Update(func(tx *bolt.Tx) error {
+		// create buckets
+		for _, name := range boltBuckets {
+			tx.DeleteBucket([]byte(name))
+		}
+
+		return nil
+	})
+
+	db.Close()
+
+	createTestDB()
 }
 
 func Float32frombytes(bytes []byte) float32 {
