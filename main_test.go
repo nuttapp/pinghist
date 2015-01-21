@@ -110,7 +110,7 @@ func TestMain_Integration(t *testing.T) {
 		// u, err := user.Current()
 		// So(err, ShouldBeNil)
 
-		SkipConvey("Ping()", func() {
+		Convey("Ping()", func() {
 			Convey("Should ping localhost", func() {
 				pr, err := Ping("localhost")
 				So(pr.Host, ShouldEqual, "localhost")
@@ -139,6 +139,10 @@ func TestMain_Integration(t *testing.T) {
 
 		Convey("SavePing()", func() {
 			resetTestDB() // These will be run for *every* convey below, which resets the DB between tests
+			Reset(func() {
+				resetTestDB()
+			})
+
 			ip := "127.0.0.1"
 			l, _ := time.LoadLocation("UTC")
 			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
@@ -176,19 +180,24 @@ func TestMain_Integration(t *testing.T) {
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
 			})
-
-			Reset(func() {
-				resetTestDB()
-			})
 		})
 
 		Convey("GetPings()", func() {
 			seedDB()
 
 			end := time.Now()
-			start := end.Add(-26 * time.Hour)
-
+			start := end.Add(-25 * time.Hour)
 			groups, err := GetPings("127.0.0.1", start, end, 1*time.Hour)
+
+			So(err, ShouldBeNil)
+			So(len(groups), ShouldEqual, 24) // there should be 1 group per hour
+
+			totalPings := 0
+			for _, group := range groups {
+				totalPings += group.Count
+			}
+
+			So(totalPings, ShouldEqual, 86400) // there should 1 ping for every second in a day
 
 			fmt.Println()
 			for i, g := range groups {
@@ -199,8 +208,6 @@ func TestMain_Integration(t *testing.T) {
 				// 	fmt.Printf("key: %s\n", key)
 				// }
 			}
-
-			So(err, ShouldBeNil)
 		})
 	})
 }
@@ -215,7 +222,7 @@ func seedDB() {
 	}
 
 	ip := "127.0.0.1"
-	max := float32(100.0)
+	max := float32(15000.0)
 	min := float32(5.0)
 	timestamp := time.Now().Add(-86400 * time.Second)
 
