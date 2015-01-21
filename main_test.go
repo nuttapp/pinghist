@@ -18,7 +18,7 @@ import (
 func TestMain_Integration(t *testing.T) {
 	createTestDB()
 
-	Convey("main (integration)", t, func() {
+	Convey("main", t, func() {
 		// u, err := user.Current()
 		// So(err, ShouldBeNil)
 
@@ -33,14 +33,14 @@ func TestMain_Integration(t *testing.T) {
 			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
 			responseTime := float32(1.1)
 
-			Convey("Should create one key w/ one ping", func() {
+			Convey("Should create one key w/ 1 ping", func() {
 				err := SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
 				keys := getPingKeys()
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
-			Convey("Should create one key when pings are < 1 minute apart", func() {
+			Convey("Should create one key when 2 pings are < 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Second) // add a second
 
 				err := SavePing(ip, startTime, responseTime)
@@ -52,7 +52,7 @@ func TestMain_Integration(t *testing.T) {
 				keys := getPingKeys()
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
-			Convey("Should create 2 keys when pings are > 1 minute apart", func() {
+			Convey("Should create 2 keys when 2 pings are > 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Minute) // add a minute
 
 				err := SavePing(ip, startTime, responseTime)
@@ -375,44 +375,6 @@ func SavePing(ip string, starTime time.Time, responseTime float32) error {
 
 	return err
 }
-
-// func SavePingResponse(pr *PingResponse) error {
-// 	if len(pr.ID) == 0 {
-// 		return errors.New("Pingresponse id can't be empty")
-// 	}
-//
-// 	// Open the my.db data file in your current directory. It will be created if it doesn't exist.
-// 	db, err := bolt.Open("pinghist.db", 0600, nil)
-// 	defer db.Close()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-//
-// 	err = db.Update(func(tx *bolt.Tx) error {
-// 		hosts := tx.Bucket([]byte("hosts"))
-// 		if hosts == nil {
-// 			return errors.New("Can't find hosts bucket")
-// 		}
-// 		pings := tx.Bucket([]byte("pings"))
-// 		if pings == nil {
-// 			return errors.New("Can't find pings bucket")
-// 		}
-//
-// 		err := hosts.Put([]byte(pr.IP), []byte(pr.Host))
-// 		if err != nil {
-// 			return fmt.Errorf("Error while saving hosts bucket: %s", err)
-// 		}
-//
-// 		err = pings.Put([]byte(pr.ID), Float32bytes(pr.Time))
-// 		if err != nil {
-// 			return fmt.Errorf("Error while saving to pings bucket: %s", err)
-// 		}
-//
-// 		return nil
-// 	})
-//
-// 	return err
-// }
 
 func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
 	pg := &PingGroup{
