@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -16,13 +17,11 @@ func Test_dal_integration(t *testing.T) {
 	createTestDB()
 
 	Convey("dal", t, func() {
-		// u, err := user.Current()
-		// So(err, ShouldBeNil)
 
 		Convey("SavePing()", func() {
-			resetTestDB() // These will be run for *every* convey below, which resets the DB between tests
+			resetTestDB()
 			Reset(func() {
-				resetTestDB()
+				os.Remove("pinghist.db")
 			})
 
 			ip := "127.0.0.1"
@@ -65,7 +64,11 @@ func Test_dal_integration(t *testing.T) {
 		})
 
 		Convey("GetPings()", func() {
-			seedDB()
+			resetTestDB()
+			seedTestDB()
+			Reset(func() {
+				os.Remove("pinghist.db")
+			})
 
 			end := time.Now()
 			start := end.Add(-25 * time.Hour)
@@ -94,9 +97,9 @@ func Test_dal_integration(t *testing.T) {
 	})
 }
 
-// seedDB will seed the db with 24 hours of pings for every second
+// seedTestDB will seed the db with 24 hours of pings for every second
 // it adds 1441 rows to the pings_by_minute bucket
-func seedDB() {
+func seedTestDB() {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
@@ -195,6 +198,7 @@ func createTestDB() {
 
 func resetTestDB() {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
+	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -208,7 +212,15 @@ func resetTestDB() {
 		return nil
 	})
 
-	db.Close()
+	db.Update(func(tx *bolt.Tx) error {
+		// create buckets
+		for _, bucketName := range boltBuckets {
+			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+		}
 
-	createTestDB()
+		return nil
+	})
 }
