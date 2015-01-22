@@ -6,7 +6,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestPing_Integration(t *testing.T) {
+func Test_ping_integration(t *testing.T) {
 	Convey("ping", t, func() {
 		Convey("Ping()", func() {
 			Convey("Should ping localhost", func() {
@@ -38,7 +38,7 @@ func TestPing_Integration(t *testing.T) {
 	})
 }
 
-func TestPing_Unit(t *testing.T) {
+func Test_ping_unit(t *testing.T) {
 
 	Convey("ping", t, func() {
 
