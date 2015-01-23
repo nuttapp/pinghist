@@ -15,6 +15,36 @@ import (
 const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
+func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
+	pings := tx.Bucket([]byte("pings_by_minute"))
+	if pings == nil {
+		return fmt.Errorf("%s: pings_by_minute", BucketNotFoundError)
+	}
+
+	key := GetPingKey(ip, starTime)
+	val, err := SerializePingRes(starTime, responseTime)
+	if err != nil {
+		return err
+	}
+
+	v := pings.Get(key)
+	if v != nil {
+		// Do not change the byte array that boltdb gives us, make our own new one
+		// + the extra room for the next value
+		newVal := make([]byte, 0, len(val)+PingResByteCount)
+		newVal = append(newVal, v...)
+		newVal = append(newVal, val...)
+		val = newVal
+	}
+
+	err = pings.Put(key, val)
+	if err != nil {
+		return fmt.Errorf("Error writing key: %s", err)
+	}
+
+	return nil
+}
+
 func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
 		return errors.New("ip can't be empty")
@@ -27,33 +57,7 @@ func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	}
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		pings := tx.Bucket([]byte("pings_by_minute"))
-		if pings == nil {
-			return fmt.Errorf("%s: pings_by_minute", BucketNotFoundError)
-		}
-
-		key := GetPingKey(ip, starTime)
-		val, err := SerializePingRes(starTime, responseTime)
-		if err != nil {
-			return err
-		}
-
-		v := pings.Get(key)
-		if v != nil {
-			// Do not change the byte array that boltdb gives us, make our own new one
-			// + the extra room for the next value
-			newVal := make([]byte, 0, len(val)+PingResByteCount)
-			newVal = append(newVal, v...)
-			newVal = append(newVal, val...)
-			val = newVal
-		}
-
-		err = pings.Put(key, val)
-		if err != nil {
-			return fmt.Errorf("Error writing key: %s", err)
-		}
-
-		return nil
+		return SavePingWithTransaction(ip, starTime, responseTime, tx)
 	})
 
 	return err
