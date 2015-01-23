@@ -121,20 +121,9 @@ func seedTestDB() {
 			pingStartTime := timestamp.Add(time.Duration(x) * time.Second)
 			resTime := rand.Float32()*(max-min) + min
 
-			key := GetPingKey(ip, pingStartTime)
-			val, err := SerializePingRes(pingStartTime, resTime)
+			err := SavePingWithTransaction(ip, pingStartTime, resTime, tx)
 			if err != nil {
 				return err
-			}
-
-			v := pings.Get(key)
-			if v != nil {
-				val = append(v, val...)
-			}
-
-			err = pings.Put(key, val)
-			if err != nil {
-				return fmt.Errorf("Error writing key: %s", err)
 			}
 		}
 
