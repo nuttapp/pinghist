@@ -17,8 +17,8 @@ const KeyNotFoundError = "Could not find key"
 
 type PingGroup struct {
 	Timestamp time.Time
-	Replys    int // The # of pings in the group
-	Timeouts  int
+	Received  int // The # of pings in the group
+	Timedout  int
 	TotalTime float32
 	MaxTime   float32
 	MinTime   float32
@@ -31,19 +31,19 @@ func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
 		TotalTime: responseTime,
 		MinTime:   responseTime,
 		MaxTime:   responseTime,
-		Replys:    1,
+		Received:  1,
 		keys:      []string{},
 	}
 
 	if responseTime == -1.0 {
-		pg.Replys = 0
-		pg.Timeouts = 1
+		pg.Received = 0
+		pg.Timedout = 1
 	}
 	return pg
 }
 
 func (pg PingGroup) Avg() float32 {
-	return pg.TotalTime / float32(pg.Replys)
+	return pg.TotalTime / float32(pg.Received)
 }
 
 func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
@@ -189,7 +189,7 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					groups = append(groups, group)
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
 					group.TotalTime += resTime
-					group.Replys++
+					group.Received++
 					if resTime < group.MinTime {
 						group.MinTime = resTime
 					}
