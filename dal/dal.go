@@ -15,6 +15,37 @@ import (
 const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
+type PingGroup struct {
+	Timestamp time.Time
+	Replys    int // The # of pings in the group
+	Timeouts  int
+	TotalTime float32
+	MaxTime   float32
+	MinTime   float32
+	keys      []string // used for debugging
+}
+
+func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
+	pg := &PingGroup{
+		Timestamp: timestamp,
+		TotalTime: responseTime,
+		MinTime:   responseTime,
+		MaxTime:   responseTime,
+		Replys:    1,
+		keys:      []string{},
+	}
+
+	if responseTime == -1.0 {
+		pg.Replys = 0
+		pg.Timeouts = 1
+	}
+	return pg
+}
+
+func (pg PingGroup) Avg() float32 {
+	return pg.TotalTime / float32(pg.Replys)
+}
+
 func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
 	pings := tx.Bucket([]byte("pings_by_minute"))
 	if pings == nil {
@@ -158,7 +189,7 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					groups = append(groups, group)
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
 					group.TotalTime += resTime
-					group.Count++
+					group.Replys++
 					if resTime < group.MinTime {
 						group.MinTime = resTime
 					}
@@ -183,27 +214,6 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 	}
 
 	return groups, nil
-}
-
-func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
-	pg := &PingGroup{
-		Timestamp: timestamp,
-		TotalTime: responseTime,
-		MinTime:   responseTime,
-		MaxTime:   responseTime,
-		Count:     1,
-		keys:      []string{},
-	}
-	return pg
-}
-
-type PingGroup struct {
-	Timestamp time.Time
-	Count     int // The # of pings in the group
-	TotalTime float32
-	MaxTime   float32
-	MinTime   float32
-	keys      []string // used for debugging
 }
 
 func Float32frombytes(bytes []byte) float32 {
