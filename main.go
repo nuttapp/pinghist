@@ -1,7 +1,10 @@
 package main
 
-import "fmt"
-import "github.com/nuttapp/pinghist/ping"
+import (
+	"fmt"
+
+	"github.com/nuttapp/pinghist/ping"
+)
 
 func main() {
 	pr, err := ping.Ping("127.0.0.1")
