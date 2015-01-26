@@ -16,30 +16,61 @@ const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
 type PingGroup struct {
-	Timestamp time.Time
-	Received  int // The # of pings in the group
-	Timedout  int
-	TotalTime float64
-	AvgTime   float64
-	StdDev    float64
-	MaxTime   float64
-	MinTime   float64
-	keys      []string // used for debugging
+	Timestamp     time.Time
+	Received      int // The # of pings in the group
+	Timedout      int
+	TotalTime     float64
+	AvgTime       float64
+	StdDev        float64
+	MaxTime       float64
+	MinTime       float64
+	keys          []string  // used for debugging
+	groupResTimes []float64 // used for calculating std dev
 }
 
-func NewPingGroup(timestamp time.Time, responseTime float64) *PingGroup {
-	pg := &PingGroup{
-		Timestamp: timestamp,
-		TotalTime: responseTime,
-		MinTime:   responseTime,
-		MaxTime:   responseTime,
-		Received:  1,
-		keys:      []string{},
+func (pg *PingGroup) addPingResTime(resTime float64) {
+	if resTime >= 0 {
+		pg.TotalTime += resTime
+		pg.Received++
+		if resTime < pg.MinTime {
+			pg.MinTime = resTime
+		}
+		if resTime > pg.MaxTime {
+			pg.MaxTime = resTime
+		}
+		pg.groupResTimes = append(pg.groupResTimes, resTime)
+	} else {
+		pg.Timedout++
+	}
+}
+
+func (pg *PingGroup) calcAvgAndStdDev() {
+	// calc std dev for the group before creating a new one
+	// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
+	avgPingResTime := pg.TotalTime / float64(pg.Received)
+	sumDiffSq := 0.0
+	for i := 0; i < len(pg.groupResTimes); i++ {
+		resTime := pg.groupResTimes[i]
+		// ignore timeouts (-1)
+		if resTime > 0 {
+			sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
+		}
 	}
 
-	if responseTime == -1.0 {
-		pg.Received = 0
-		pg.Timedout = 1
+	pg.StdDev = math.Sqrt(sumDiffSq / float64(len(pg.groupResTimes)))
+	pg.AvgTime = avgPingResTime
+	pg.groupResTimes = nil // free this mem
+}
+
+func NewPingGroup(timestamp time.Time) *PingGroup {
+	pg := &PingGroup{
+		Timestamp:     timestamp,
+		TotalTime:     0,
+		MinTime:       0,
+		MaxTime:       0,
+		Received:      0,
+		keys:          []string{},
+		groupResTimes: []float64{},
 	}
 	return pg
 }
@@ -184,47 +215,19 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 
 				// on first loop assign the group
 				if count == 0 {
-					group = NewPingGroup(*pingTime, resTime)
+					group = NewPingGroup(*pingTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
-					if resTime > 0 {
-						groupResTimes = append(groupResTimes, resTime)
-					}
+					group.addPingResTime(resTime)
+
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
-					group.TotalTime += resTime
-					group.Received++
-					if resTime < group.MinTime {
-						group.MinTime = resTime
-					}
-					if resTime > group.MaxTime {
-						group.MaxTime = resTime
-					}
-					if resTime > 0 {
-						groupResTimes = append(groupResTimes, resTime)
-					}
+					group.addPingResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 
 				} else { // start a new group
+					group.calcAvgAndStdDev()
 
-					// calc std dev for the group before creating a new one
-					// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
-					avgPingResTime := group.TotalTime / float64(group.Received)
-					sumDiffSq := 0.0
-					for i := 0; i < len(groupResTimes); i++ {
-						resTime := groupResTimes[i]
-						// ignore timeouts (-1)
-						if resTime > 0 {
-							sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
-						}
-					}
-
-					stdDevP := math.Sqrt(sumDiffSq / float64(len(groupResTimes)))
-					group.StdDev = stdDevP
-					group.AvgTime = avgPingResTime
-
-					groupResTimes = make([]float64, 0)
-
-					group = NewPingGroup(*pingTime, resTime)
+					group = NewPingGroup(*pingTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
 					if resTime > 0 {
