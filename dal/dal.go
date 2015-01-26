@@ -210,7 +210,6 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
 					avgPingResTime := group.TotalTime / float64(group.Received)
 					sumDiffSq := 0.0
-					fmt.Printf("Num pings in group %d\n", len(groupResTimes))
 					for i := 0; i < len(groupResTimes); i++ {
 						resTime := groupResTimes[i]
 						// ignore timeouts (-1)
