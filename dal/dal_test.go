@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/dustin/go-humanize"
 	"github.com/olekukonko/tablewriter"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -108,32 +107,39 @@ func Test_dal_integration(t *testing.T) {
 
 			table := tablewriter.NewWriter(os.Stdout)
 			table.SetHeader([]string{
-				"Date",
+				"Time",
+				"min",
 				"avg",
 				"max",
-				"min",
-				"count",
+				"std dev",
+				"Received",
+				"Lost",
 			})
 			// table.SetFooter([]string{"", "", "", "Total", "$146.93"}) // Add Footer
 			table.SetBorder(false) // Set Border to false
 			table.SetAlignment(tablewriter.ALIGN_RIGHT)
 
 			t := time.Now()
+			fmt.Printf("time.now: %s\n", t.Format(time.Kitchen))
 			end := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
-			start := end.Add(-10 * time.Minute)
-			groups, _ := GetPings("127.0.0.1", start, end, 1*time.Minute)
+			start := end.Add(-25 * time.Hour)
+			groups, _ := GetPings("127.0.0.1", start, end, 1*time.Hour)
+			// location, _ := time.LoadLocation("America/New_York")
 
 			totalPings := 0
 			for _, g := range groups {
 				row := []string{
+					// g.Timestamp.In(location).Format(time.Kitchen),
 					g.Timestamp.Format(time.Kitchen),
-					fmt.Sprintf("%s ms", humanize.Comma(int64(g.Avg()))),
-					fmt.Sprintf("%s ms", humanize.Comma(int64(g.MaxTime))),
-					fmt.Sprintf("%s ms", humanize.Comma(int64(g.MinTime))),
-					fmt.Sprintf("%d", g.Replys),
+					fmt.Sprintf("%.0f ms", g.MinTime),
+					fmt.Sprintf("%.0f ms", g.AvgTime),
+					fmt.Sprintf("%.0f ms", g.MaxTime),
+					fmt.Sprintf("%.0f ms", g.StdDev),
+					fmt.Sprintf("%d", g.Received),
+					"0",
 				}
 				table.Append(row)
-				totalPings += g.Replys
+				totalPings += g.Received
 			}
 			// table.AppendBulk(data)                                // Add Bulk Data
 			table.Render()
@@ -152,10 +158,10 @@ func seedTestDB() {
 	}
 
 	ip := "127.0.0.1"
-	max := float32(15000.0)
-	min := float32(5.0)
-	timestamp := time.Now().Add(-86400 * time.Second)
-	rand.Seed(time.Now().UnixNano())
+	maxRes := float32(1500.0)
+	minRes := float32(5.0)
+	now := time.Now()
+	startTime := now.Add(-24 * time.Hour)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
@@ -163,19 +169,20 @@ func seedTestDB() {
 			return errors.New("Couldn't find pings_by_minute bucket")
 		}
 
-		for x := 0; x < 86400; x += 2 {
-			pingStartTime := timestamp.Add(time.Duration(x) * time.Second)
-			if x == 84599 {
-				fmt.Printf("final pingtime: %s\n", pingStartTime)
-			}
-			resTime := rand.Float32()*(max-min) + min
+		var finalT time.Time
+		// pt == ping timestamp
+		for pt := startTime; pt.Sub(now) <= 1*time.Second; pt = pt.Add(1 * time.Second) {
+			resTime := rand.Float32()*(maxRes-minRes) + minRes
 
-			err := SavePingWithTransaction(ip, pingStartTime, resTime, tx)
+			err := SavePingWithTransaction(ip, pt, resTime, tx)
 			if err != nil {
 				return err
 			}
+
+			finalT = pt
 		}
 
+		fmt.Printf("final time key: %s\n", finalT)
 		return nil
 	})
 

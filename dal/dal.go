@@ -19,13 +19,15 @@ type PingGroup struct {
 	Timestamp time.Time
 	Received  int // The # of pings in the group
 	Timedout  int
-	TotalTime float32
-	MaxTime   float32
-	MinTime   float32
+	TotalTime float64
+	AvgTime   float64
+	StdDev    float64
+	MaxTime   float64
+	MinTime   float64
 	keys      []string // used for debugging
 }
 
-func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
+func NewPingGroup(timestamp time.Time, responseTime float64) *PingGroup {
 	pg := &PingGroup{
 		Timestamp: timestamp,
 		TotalTime: responseTime,
@@ -40,10 +42,6 @@ func NewPingGroup(timestamp time.Time, responseTime float32) *PingGroup {
 		pg.Timedout = 1
 	}
 	return pg
-}
-
-func (pg PingGroup) Avg() float32 {
-	return pg.TotalTime / float32(pg.Received)
 }
 
 func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
@@ -135,7 +133,7 @@ func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
 }
 
 // DeserializePingRes does the opposite of SerializePingRes
-func DeserializePingRes(data []byte) (*time.Time, float32, error) {
+func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 	pingTime := &time.Time{}
 	if len(data) != PingResByteCount {
 		return nil, 0, errors.New("Invalid data length")
@@ -148,7 +146,7 @@ func DeserializePingRes(data []byte) (*time.Time, float32, error) {
 	responseTimeOffset := PingResTimestampByteCount + 1
 	resTime := Float32frombytes(data[responseTimeOffset : responseTimeOffset+PingResTimeByteCount])
 
-	return pingTime, resTime, nil
+	return pingTime, float64(resTime), nil
 }
 
 func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
@@ -172,8 +170,10 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 		max := []byte(ipAddress + "_" + end.Format(time.RFC3339))
 		count := 0
 		var group *PingGroup
+		// hold on to the pings so we can calculate std dev for a group
+		groupResTimes := make([]float64, 0)
 
-		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) == -1; k, v = c.Next() {
+		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			// keyParts := strings.Split(string(k), "_")
 
 			for i := 0; i < len(v); i += PingResByteCount {
@@ -187,6 +187,9 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					group = NewPingGroup(*pingTime, resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
+					if resTime > 0 {
+						groupResTimes = append(groupResTimes, resTime)
+					}
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
 					group.TotalTime += resTime
 					group.Received++
@@ -196,14 +199,41 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					if resTime > group.MaxTime {
 						group.MaxTime = resTime
 					}
+					if resTime > 0 {
+						groupResTimes = append(groupResTimes, resTime)
+					}
 					// group.Keys = append(group.Keys, keyParts[1])
-				} else {
+
+				} else { // start a new group
+
+					// calc std dev for the group before creating a new one
+					avgPingResTime := group.TotalTime / float64(group.Received)
+					sumDiffSq := 0.0
+					fmt.Printf("Num pings in group %d\n", len(groupResTimes))
+					for i := 0; i < len(groupResTimes); i++ {
+						resTime := groupResTimes[i]
+						// ignore timeouts (-1)
+						if resTime > 0 {
+							sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
+						}
+					}
+
+					stdDevP := math.Sqrt(sumDiffSq / float64(len(groupResTimes)))
+					group.StdDev = stdDevP
+					group.AvgTime = avgPingResTime
+
+					groupResTimes = make([]float64, 0)
+
 					group = NewPingGroup(*pingTime, resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
+					if resTime > 0 {
+						groupResTimes = append(groupResTimes, resTime)
+					}
 				}
 				count++
 			}
+
 		}
 
 		return nil
