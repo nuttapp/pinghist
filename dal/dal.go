@@ -16,29 +16,29 @@ const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
 type PingGroup struct {
-	Timestamp     time.Time
-	Received      int // The # of pings in the group
-	Timedout      int
-	TotalTime     float64
-	AvgTime       float64
-	StdDev        float64
-	MaxTime       float64
-	MinTime       float64
-	keys          []string  // used for debugging
-	groupResTimes []float64 // used for calculating std dev
+	Timestamp time.Time
+	Received  int // The # of pings in the group
+	Timedout  int
+	TotalTime float64
+	AvgTime   float64
+	StdDev    float64
+	MaxTime   float64
+	MinTime   float64
+	keys      []string  // used for debugging
+	ResTimes  []float64 // Response times, used for calc std dev, should be empty after calling calcAvgAndStdDev()
 }
 
 func (pg *PingGroup) addPingResTime(resTime float64) {
 	if resTime >= 0 {
 		pg.TotalTime += resTime
 		pg.Received++
-		if resTime < pg.MinTime {
+		if pg.MinTime == 0 || resTime < pg.MinTime {
 			pg.MinTime = resTime
 		}
 		if resTime > pg.MaxTime {
 			pg.MaxTime = resTime
 		}
-		pg.groupResTimes = append(pg.groupResTimes, resTime)
+		pg.ResTimes = append(pg.ResTimes, resTime)
 	} else {
 		pg.Timedout++
 	}
@@ -49,28 +49,28 @@ func (pg *PingGroup) calcAvgAndStdDev() {
 	// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
 	avgPingResTime := pg.TotalTime / float64(pg.Received)
 	sumDiffSq := 0.0
-	for i := 0; i < len(pg.groupResTimes); i++ {
-		resTime := pg.groupResTimes[i]
+	for i := 0; i < len(pg.ResTimes); i++ {
+		resTime := pg.ResTimes[i]
 		// ignore timeouts (-1)
 		if resTime > 0 {
 			sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
 		}
 	}
 
-	pg.StdDev = math.Sqrt(sumDiffSq / float64(len(pg.groupResTimes)))
+	pg.StdDev = math.Sqrt(sumDiffSq / float64(len(pg.ResTimes)))
 	pg.AvgTime = avgPingResTime
-	pg.groupResTimes = nil // free this mem
+	// pg.resTimes = nil // free this mem
 }
 
 func NewPingGroup(timestamp time.Time) *PingGroup {
 	pg := &PingGroup{
-		Timestamp:     timestamp,
-		TotalTime:     0,
-		MinTime:       0,
-		MaxTime:       0,
-		Received:      0,
-		keys:          []string{},
-		groupResTimes: []float64{},
+		Timestamp: timestamp,
+		TotalTime: 0,
+		MinTime:   0,
+		MaxTime:   0,
+		Received:  0,
+		keys:      []string{},
+		ResTimes:  []float64{},
 	}
 	return pg
 }
@@ -202,7 +202,6 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 		count := 0
 		var group *PingGroup
 		// hold on to the pings so we can calculate std dev for a group
-		groupResTimes := make([]float64, 0)
 
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			// keyParts := strings.Split(string(k), "_")
@@ -216,9 +215,9 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 				// on first loop assign the group
 				if count == 0 {
 					group = NewPingGroup(*pingTime)
+					group.addPingResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
-					group.addPingResTime(resTime)
 
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
 					group.addPingResTime(resTime)
@@ -228,16 +227,16 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					group.calcAvgAndStdDev()
 
 					group = NewPingGroup(*pingTime)
+					group.addPingResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
-					if resTime > 0 {
-						groupResTimes = append(groupResTimes, resTime)
-					}
 				}
 				count++
 			}
-
 		}
+
+		// run cal for final group
+		group.calcAvgAndStdDev()
 
 		return nil
 	})
