@@ -150,7 +150,6 @@ func Test_dal_integration(t *testing.T) {
 // seedTestDB will seed the db with 24 hours of pings for every second
 // it adds 1441 rows to the pings_by_minute bucket
 func seedTestDB() {
-	fmt.Println("seedTestDB")
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
@@ -169,9 +168,9 @@ func seedTestDB() {
 			return errors.New("Couldn't find pings_by_minute bucket")
 		}
 
-		var finalT time.Time
+		// var finalT time.Time
 		// pt == ping timestamp
-		for pt := startTime; pt.Sub(now) <= 1*time.Second; pt = pt.Add(1 * time.Second) {
+		for pt := startTime; pt.Sub(now) != 0; pt = pt.Add(1 * time.Second) {
 			resTime := rand.Float32()*(maxRes-minRes) + minRes
 
 			err := SavePingWithTransaction(ip, pt, resTime, tx)
@@ -179,10 +178,10 @@ func seedTestDB() {
 				return err
 			}
 
-			finalT = pt
+			// finalT = pt
 		}
 
-		fmt.Printf("final time key: %s\n", finalT)
+		// fmt.Printf("final time key: %s\n", finalT)
 		return nil
 	})
 
