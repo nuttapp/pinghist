@@ -52,10 +52,7 @@ func (pg *PingGroup) calcAvgAndStdDev() {
 	sumDiffSq := 0.0
 	for i := 0; i < len(pg.ResTimes); i++ {
 		resTime := pg.ResTimes[i]
-		// ignore timeouts (-1)
-		if resTime > 0 {
-			sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
-		}
+		sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
 	}
 
 	pg.StdDev = math.Sqrt(sumDiffSq / float64(len(pg.ResTimes)))
