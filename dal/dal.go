@@ -28,7 +28,8 @@ type PingGroup struct {
 	ResTimes  []float64 // Response times, used for calc std dev, should be empty after calling calcAvgAndStdDev()
 }
 
-func (pg *PingGroup) addPingResTime(resTime float64) {
+// addResTime will add a response time to group
+func (pg *PingGroup) addResTime(resTime float64) {
 	if resTime >= 0 {
 		pg.TotalTime += resTime
 		pg.Received++
@@ -215,19 +216,19 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 				// on first loop assign the group
 				if count == 0 {
 					group = NewPingGroup(*pingTime)
-					group.addPingResTime(resTime)
+					group.addResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
 
 				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
-					group.addPingResTime(resTime)
+					group.addResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 
 				} else { // start a new group
 					group.calcAvgAndStdDev()
 
 					group = NewPingGroup(*pingTime)
-					group.addPingResTime(resTime)
+					group.addResTime(resTime)
 					// group.Keys = append(group.Keys, keyParts[1])
 					groups = append(groups, group)
 				}
