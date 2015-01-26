@@ -4,7 +4,7 @@ module.exports = function(grunt) {
     var config = {
         shell: {
             del_db: {
-                command: "rm pinghist.db",
+                command: "rm dal/pinghist.db",
                 options: {
                     failOnError: false,
                     stdout: false,
@@ -24,11 +24,13 @@ module.exports = function(grunt) {
             }
         },
         watch: {
-            files: ['**/*.go', '**/*.sh'],
-            tasks: ['clear', 'shell:del_db', 'shell:go_test', 'shell:db_info']
+            files: ['**/*.go', '**/*.sh', '!**/node_modules/**', '!**/.git/**'],
+            tasks: ['run_test']
         }
     };
     grunt.initConfig(config);
 
     grunt.registerTask('default', ['clear', 'watch']);
+    grunt.registerTask('run_test', ['clear', 'shell:del_db', 'shell:go_test', 'shell:db_info']);
+
 };
