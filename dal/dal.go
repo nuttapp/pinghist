@@ -50,12 +50,12 @@ func (pg *PingGroup) calcAvgAndStdDev() {
 	// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
 	avgPingResTime := pg.TotalTime / float64(pg.Received)
 	sumDiffSq := 0.0
-	for i := 0; i < len(pg.ResTimes); i++ {
+	for i := 0; i < pg.Received; i++ {
 		resTime := pg.ResTimes[i]
 		sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
 	}
 
-	pg.StdDev = math.Sqrt(sumDiffSq / float64(len(pg.ResTimes)))
+	pg.StdDev = math.Sqrt(sumDiffSq / float64(pg.Received))
 	pg.AvgTime = avgPingResTime
 	// pg.resTimes = nil // free this mem
 }
