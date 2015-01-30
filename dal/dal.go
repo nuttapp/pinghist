@@ -16,7 +16,8 @@ const BucketNotFoundError = "Could not find bucket"
 const KeyNotFoundError = "Could not find key"
 
 type PingGroup struct {
-	Timestamp time.Time
+	Start     time.Time
+	End       time.Time
 	Received  int // The # of pings in the group
 	Timedout  int
 	TotalTime float64
@@ -24,8 +25,9 @@ type PingGroup struct {
 	StdDev    float64
 	MaxTime   float64
 	MinTime   float64
-	keys      []string  // used for debugging
-	ResTimes  []float64 // Response times, used for calc std dev, should be empty after calling calcAvgAndStdDev()
+	keys      []string // used for debugging
+	// Response times, used for calc std dev, should be nil after calling calcAvgAndStdDev()
+	resTimes []float64
 }
 
 // addResTime will add a response time to group
@@ -39,7 +41,7 @@ func (pg *PingGroup) addResTime(resTime float64) {
 		if resTime > pg.MaxTime {
 			pg.MaxTime = resTime
 		}
-		pg.ResTimes = append(pg.ResTimes, resTime)
+		pg.resTimes = append(pg.resTimes, resTime)
 	} else {
 		pg.Timedout++
 	}
@@ -48,31 +50,39 @@ func (pg *PingGroup) addResTime(resTime float64) {
 func (pg *PingGroup) calcAvgAndStdDev() {
 	// calc std dev for the group before creating a new one
 	// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
+	if pg.TotalTime == 0 {
+		pg.StdDev = 0
+		pg.AvgTime = 0
+		return
+	}
+
 	avgPingResTime := pg.TotalTime / float64(pg.Received)
 	sumDiffSq := 0.0
 	for i := 0; i < pg.Received; i++ {
-		resTime := pg.ResTimes[i]
+		resTime := pg.resTimes[i]
 		sumDiffSq += math.Pow(resTime-avgPingResTime, 2)
 	}
 
 	pg.StdDev = math.Sqrt(sumDiffSq / float64(pg.Received))
 	pg.AvgTime = avgPingResTime
-	// pg.resTimes = nil // free this mem
+	pg.resTimes = nil // free this mem
 }
 
-func NewPingGroup(timestamp time.Time) *PingGroup {
+func NewPingGroup(start, end time.Time) *PingGroup {
 	pg := &PingGroup{
-		Timestamp: timestamp,
+		Start:     start,
+		End:       end,
 		TotalTime: 0,
 		MinTime:   0,
 		MaxTime:   0,
 		Received:  0,
 		keys:      []string{},
-		ResTimes:  []float64{},
+		resTimes:  []float64{},
 	}
 	return pg
 }
 
+// SavePingWithTransaction will save a ping to bolt using the given bolt transaction
 func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
 	pings := tx.Bucket([]byte("pings_by_minute"))
 	if pings == nil {
@@ -103,6 +113,10 @@ func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32
 	return nil
 }
 
+// SavePing will save a ping to bolt
+// Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
+// The pings within a minute are stored as an array of bytes (in the value) for fast
+//	serialization/deserialization and to minimize their size. See SerializePingRes.
 func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
 		return errors.New("ip can't be empty")
@@ -133,13 +147,13 @@ func GetPingKey(ip string, pingStartTime time.Time) []byte {
 }
 
 const (
-	PingResByteCount          = 21 // total bytes
+	PingResByteCount          = 21 // total bytes = time bytes + 1 + float32 bytes + 1
 	PingResTimestampByteCount = 15 // time.Time
 	PingResTimeByteCount      = 4  // float32
 )
 
 // SerializePingRes converts startTime and resTime to a 21 byte array
-// startTime is  the time the ping was initated
+// startTime is the time the ping was initated
 // resTime is the amount of time it took to return the ping packet
 // endTime = startTime + resTime
 // Format: 21 bytes
@@ -186,6 +200,7 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 	}
 
 	groups := make([]*PingGroup, 0, 5)
+	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
 
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
@@ -194,48 +209,41 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 		}
 		c := pings.Cursor()
 
-		groupSeconds := groupBy.Seconds()
 		min := []byte(ipAddress + "_" + start.Format(time.RFC3339))
 		max := []byte(ipAddress + "_" + end.Format(time.RFC3339))
-		count := 0
-		var group *PingGroup
-		// hold on to the pings so we can calculate std dev for a group
+		currGroup := NewPingGroup(start, start.Add(groupBy))
+		// fmt.Printf("GRP: s:%s - e:%s\n", currGroup.Start.Format("01/02/06 3:04:05 pm"), currGroup.End.Format("01/02/06 3:04:05 pm"))
 
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			// keyParts := strings.Split(string(k), "_")
-
 			for i := 0; i < len(v); i += PingResByteCount {
 				pingTime, resTime, err := DeserializePingRes(v[i : i+PingResByteCount])
 				if err != nil {
 					return err
 				}
 
-				// on first loop assign the group
-				if count == 0 {
-					group = NewPingGroup(*pingTime)
-					group.addResTime(resTime)
-					// group.Keys = append(group.Keys, keyParts[1])
-					groups = append(groups, group)
-
-				} else if math.Abs(group.Timestamp.Sub(*pingTime).Seconds()) < groupSeconds { // add to group when it's in the range
-					group.addResTime(resTime)
-					// group.Keys = append(group.Keys, keyParts[1])
-
-				} else { // start a new group
-					group.calcAvgAndStdDev()
-
-					group = NewPingGroup(*pingTime)
-					group.addResTime(resTime)
-					// group.Keys = append(group.Keys, keyParts[1])
-					groups = append(groups, group)
+				// Make sure we don't go beyond our end time
+				if pingTime.Equal(end) || pingTime.After(end) {
+					break
 				}
-				count++
+
+				for x := 0; x < 10; x++ {
+					if pingTime.Equal(currGroup.Start) || (pingTime.After(currGroup.Start) && pingTime.Before(currGroup.End)) {
+						currGroup.addResTime(resTime)
+						break
+					} else {
+						currGroup.calcAvgAndStdDev()
+						groups = append(groups, currGroup)
+
+						currGroup = NewPingGroup(currGroup.End, currGroup.End.Add(groupBy))
+						// fmt.Printf("%s - %s\n", currGroup.Start.Format("01/02 3:04:05 pm"), currGroup.End.Format("01/02 3:04:05 pm"))
+					}
+				}
 			}
 		}
 
-		// run cal for final group
-		group.calcAvgAndStdDev()
-
+		currGroup.calcAvgAndStdDev()
+		groups = append(groups, currGroup)
 		return nil
 	})
 
