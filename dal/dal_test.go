@@ -13,6 +13,20 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func Test_dal_unit(t *testing.T) {
+	Convey("dal", t, func() {
+		Convey("addResTime", func() {
+			Convey("should increment TimedOut property", func() {
+				pg := NewPingGroup(time.Now(), time.Now())
+				pg.addResTime(-1)
+				So(pg.Timedout, ShouldEqual, 1)
+				pg.addResTime(-1)
+				So(pg.Timedout, ShouldEqual, 2)
+			})
+		})
+	})
+}
+
 func Test_dal_integration(t *testing.T) {
 
 	Convey("dal", t, func() {
