@@ -232,8 +232,8 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 
 				// Keep creating groups until one fits our bucket, this for loop is only here
 				// because it's possible for a person to query a start time before there is any data
-				// So return empty groups to the consumer (no pings), there is definitely a better way
-				// why 50... because I pulled it out of my butt. Infinite loop protection, BRO
+				// So return empty groups to the consumer (no pings), there is definitely a better way.
+				// Why 50... because I pulled it out of my butt. Infinite loop protection, BRO
 				for x := 0; x < 50; x++ {
 					if pingTime.Equal(currGroup.Start) || (pingTime.After(currGroup.Start) && pingTime.Before(currGroup.End)) {
 						currGroup.addResTime(resTime)
