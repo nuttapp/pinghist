@@ -16,12 +16,12 @@ import (
 func Test_dal_integration(t *testing.T) {
 
 	Convey("dal", t, func() {
-		resetTestDB() // run before every Convey(...)
+		createTestDB() // run before every Convey(...)
 		Reset(func() {
 			os.Remove("pinghist.db")
 		})
 
-		Convey("SavePing()", func() {
+		SkipConvey("SavePing()", func() {
 			ip := "127.0.0.1"
 			l, _ := time.LoadLocation("UTC")
 			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
@@ -70,6 +70,8 @@ func Test_dal_integration(t *testing.T) {
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", l)
+				start = start.UTC()
+				endti = endti.UTC()
 				groupBy := 1 * time.Hour
 				// fmt.Printf("%s - %s\n", start.Format(tfmt), endti.Format(tfmt))
 
@@ -79,13 +81,14 @@ func Test_dal_integration(t *testing.T) {
 				So(sumReceived(groups), ShouldEqual, 86400) // there should 1 ping for every second in a day
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
-				// writeTable(groups)
 			})
 			Convey("should return  4 groups, 15 minutes in each group", func() {
 				seedTestDB("01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
+				start = start.UTC()
+				endti = endti.UTC()
 				groupBy := 15 * time.Minute
 
 				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
@@ -100,6 +103,8 @@ func Test_dal_integration(t *testing.T) {
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:01:00 pm", l)
+				start = start.UTC()
+				endti = endti.UTC()
 				groupBy := 1 * time.Second
 
 				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
@@ -113,6 +118,8 @@ func Test_dal_integration(t *testing.T) {
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
+				start = start.UTC()
+				endti = endti.UTC()
 				groupBy := 1 * time.Second
 
 				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
@@ -136,6 +143,8 @@ func sumReceived(groups []*PingGroup) int {
 
 // seedTestDB will seed the db every second betwene the given times
 func seedTestDB(startTime, endTime string) {
+	const tfmt = "01/02/06 03:04:05 pm"
+
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
@@ -147,9 +156,10 @@ func seedTestDB(startTime, endTime string) {
 	rand.Seed(time.Now().UnixNano())
 
 	l := time.Now().Location()
-	tfmt := "01/02/06 03:04:05 pm"
 	start, _ := time.ParseInLocation(tfmt, startTime, l)
 	end, _ := time.ParseInLocation(tfmt, endTime, l)
+	start = start.UTC()
+	end = end.UTC()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
@@ -209,9 +219,11 @@ func writeTable(groups []*PingGroup) {
 	table.SetBorder(false) // Set Border to false
 	table.SetAlignment(tablewriter.ALIGN_RIGHT)
 
+	l := time.Now().Location()
+
 	for _, g := range groups {
 		row := []string{
-			fmt.Sprintf("%s", g.Start.Format("01/02 03:04pm")),
+			fmt.Sprintf("%s", g.Start.In(l).Format("01/02 03:04pm")),
 			fmt.Sprintf("%.0f ms", g.MinTime),
 			fmt.Sprintf("%.0f ms", g.AvgTime),
 			fmt.Sprintf("%.0f ms", g.MaxTime),
