@@ -97,7 +97,7 @@ func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32
 
 	v := pings.Get(key)
 	if v != nil {
-		// Do not change the byte array that boltdb gives us, make our own new one
+		// Don't change the byte array that boltdb gives us, make our own new one
 		// + the extra room for the next value
 		newVal := make([]byte, 0, len(val)+PingResByteCount)
 		newVal = append(newVal, v...)
@@ -160,6 +160,7 @@ const (
 // | 15 bytes  | 1 byte  | 4 bytes | 1 byte
 // | startTime | padding | resTime | padding
 // TODO Convert to PingRes struct w/ method MarshalBinary()
+// TODO Remove serialization of datetime entirely, use a single byte as an offset in seconds
 func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
 	buff := make([]byte, PingResByteCount)
 	floatBytes := Float32bytes(resTime)
@@ -192,6 +193,8 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 	return pingTime, float64(resTime), nil
 }
 
+// GetPings returns pings between the start time and end time, for the given IP
+//	grouped by the given duration. It calculates avg and std devation for each group
 func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
@@ -227,7 +230,11 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					break
 				}
 
-				for x := 0; x < 10; x++ {
+				// why 50... because I pulled it out of my butt. Infinite loop protection, BRO
+				// Keep creating groups until one fits our bucket, this for loop is only here
+				// because it's possible for a person to query a start time before there is any data
+				// So return empty groups to the consumer (no pings), there is definitely a better way
+				for x := 0; x < 50; x++ {
 					if pingTime.Equal(currGroup.Start) || (pingTime.After(currGroup.Start) && pingTime.Before(currGroup.End)) {
 						currGroup.addResTime(resTime)
 						break
