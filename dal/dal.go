@@ -193,7 +193,10 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 }
 
 // GetPings returns pings between the start time and end time, for the given IP
-//	grouped by the given duration. It calculates avg and std devation for each group
+//	grouped by the given duration.
+// Start and end should be in UTC
+// gruupBy can be any valid time.Duration, ex: 1 * time.Hour
+// Returns a summary for each PingGroup with avg and std deviation
 func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
