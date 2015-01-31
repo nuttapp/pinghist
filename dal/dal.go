@@ -18,19 +18,18 @@ const KeyNotFoundError = "Could not find key"
 type PingGroup struct {
 	Start     time.Time
 	End       time.Time
-	Received  int // The # of pings in the group
-	Timedout  int
-	TotalTime float64
-	AvgTime   float64
-	StdDev    float64
+	Received  int     // # of ping packets received
+	Timedout  int     // # packets timed out
+	TotalTime float64 // sum of resTime of all received
+	AvgTime   float64 // TotalTime / Recieved
+	StdDev    float64 // for AvgTime
 	MaxTime   float64
 	MinTime   float64
-	keys      []string // used for debugging
-	// Response times, used for calc std dev, should be nil after calling calcAvgAndStdDev()
-	resTimes []float64
+	keys      []string  // used for debugging
+	resTimes  []float64 // Response times, used to calc std dev, nil after calling calcAvgAndStdDev()
 }
 
-// addResTime will add a response time to group
+// addResTime will add a ping response time to group
 func (pg *PingGroup) addResTime(resTime float64) {
 	if resTime >= 0 {
 		pg.TotalTime += resTime
@@ -47,9 +46,9 @@ func (pg *PingGroup) addResTime(resTime float64) {
 	}
 }
 
+// calc std dev for the group before creating a new one
+// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
 func (pg *PingGroup) calcAvgAndStdDev() {
-	// calc std dev for the group before creating a new one
-	// https://www.khanacademy.org/math/probability/descriptive-statistics/variance_std_deviation/v/population-standard-deviation
 	if pg.TotalTime == 0 {
 		pg.StdDev = 0
 		pg.AvgTime = 0
@@ -115,8 +114,8 @@ func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32
 
 // SavePing will save a ping to bolt
 // Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
-// The pings within a minute are stored as an array of bytes (in the value) for fast
-//	serialization/deserialization and to minimize their size. See SerializePingRes.
+// The pings within a minute are stored as an array of bytes for fast
+// serialization/deserialization and to minimize the size of the value (see SerializePingRes)
 func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
 		return errors.New("ip can't be empty")
@@ -230,7 +229,7 @@ func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]
 					break
 				}
 
-				// Keep creating groups until one fits our bucket, this for loop is only here
+				// Keep creating groups until one fits our bucket, this is here
 				// because it's possible for a person to query a start time before there is any data
 				// So return empty groups to the consumer (no pings), there is definitely a better way.
 				// Why 50... because I pulled it out of my butt. Infinite loop protection, BRO
