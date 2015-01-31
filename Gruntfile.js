@@ -31,6 +31,6 @@ module.exports = function(grunt) {
     grunt.initConfig(config);
 
     grunt.registerTask('default', ['clear', 'watch']);
-    grunt.registerTask('run_test', ['clear', 'shell:del_db', 'shell:go_test', 'shell:db_info']);
+    grunt.registerTask('run_test', ['clear', 'shell:go_test']);
 
 };
