@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
@@ -227,10 +226,10 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 // Returns a summary for each PingGroup with avg and std deviation
 func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
-	defer db.Close()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+	defer db.Close()
 
 	groups := make([]*PingGroup, 0, 5)
 	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
