@@ -260,7 +260,6 @@ func Test_dal_integration(t *testing.T) {
 				})
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, "key too large")
-				fmt.Println("\n" + err.Error())
 			})
 			Convey("should return error when it can't find bucket", func() {
 				db, err := bolt.Open(d.fileName, 0600, nil)
@@ -279,7 +278,6 @@ func Test_dal_integration(t *testing.T) {
 				})
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
-				fmt.Println("\n" + err.Error())
 			})
 		})
 
