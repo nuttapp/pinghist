@@ -177,7 +177,7 @@ func Test_dal_integration(t *testing.T) {
 				So(len(groups), ShouldEqual, 4)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
-				So(sumReceived(groups), ShouldEqual, 3600) // there should 1 ping for every second in a day
+				So(sumReceived(groups), ShouldEqual, 3600)
 			})
 			Convey("should return 60 groups, 1 second in each group", func() {
 				seedTestDB("01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
@@ -209,6 +209,28 @@ func Test_dal_integration(t *testing.T) {
 				So(sumReceived(groups), ShouldEqual, 30)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
+			})
+		})
+
+		Convey("SavePingWithTransaction()", func() {
+			Convey("[38;5;27mshould return error when it can't find bucket", func() {
+				db, err := bolt.Open(d.fileName, 0600, nil)
+				So(err, ShouldBeNil)
+				defer db.Close()
+
+				err = db.Update(func(tx *bolt.Tx) error {
+					// create buckets
+					for _, name := range boltBuckets {
+						tx.DeleteBucket([]byte(name))
+					}
+
+					return nil
+				})
+				So(err, ShouldBeNil)
+				err = db.Update(func(tx *bolt.Tx) error {
+					return d.SavePingWithTransaction("", time.Time{}, 1.0, tx)
+				})
+				So(err.Error(), ShouldStartWith, BucketNotFoundError)
 			})
 		})
 	})
