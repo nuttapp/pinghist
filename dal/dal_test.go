@@ -165,11 +165,11 @@ func Test_dal_integration(t *testing.T) {
 			})
 			Convey("should return error w/ blank IP", func() {
 				err := d.SavePing("", time.Now(), 0)
-				So(err.Error(), ShouldEqual, IPRequiredError)
+				So(err.Error(), ShouldContainSubstring, IPRequiredError)
 			})
 			Convey("should return error w/ response time < -1", func() {
 				err := d.SavePing(ip, time.Now(), -2.0)
-				So(err.Error(), ShouldEqual, ResponseTimeOutOfRangeError)
+				So(err.Error(), ShouldContainSubstring, ResponseTimeOutOfRangeError)
 			})
 			Convey("should return error when opening invalid db", func() {
 				d := &DAL{}
