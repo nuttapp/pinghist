@@ -213,20 +213,18 @@ func Test_dal_integration(t *testing.T) {
 		})
 
 		Convey("SavePingWithTransaction()", func() {
-			Convey("[38;5;27mshould return error when it can't find bucket", func() {
+			Convey("should return error when it can't find bucket", func() {
 				db, err := bolt.Open(d.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				defer db.Close()
-
 				err = db.Update(func(tx *bolt.Tx) error {
-					// create buckets
 					for _, name := range boltBuckets {
 						tx.DeleteBucket([]byte(name))
 					}
-
 					return nil
 				})
 				So(err, ShouldBeNil)
+
 				err = db.Update(func(tx *bolt.Tx) error {
 					return d.SavePingWithTransaction("", time.Time{}, 1.0, tx)
 				})
