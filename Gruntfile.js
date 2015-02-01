@@ -3,6 +3,12 @@ module.exports = function(grunt) {
 
     var config = {
         shell: {
+            go_install: {
+                command: "go install ./...",
+                options: {
+                    failOnError: true
+                }
+            },
             del_db: {
                 command: "rm dal/pinghist.db",
                 options: {
@@ -31,6 +37,6 @@ module.exports = function(grunt) {
     grunt.initConfig(config);
 
     grunt.registerTask('default', ['clear', 'watch']);
-    grunt.registerTask('run_test', ['clear', 'shell:go_test']);
+    grunt.registerTask('run_test', ['clear', 'shell:go_install', 'shell:go_test']);
 
 };
