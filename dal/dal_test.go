@@ -14,7 +14,7 @@ import (
 )
 
 func Test_dal_unit(t *testing.T) {
-	Convey("PingGroup", t, func() {
+	Convey("dal.PingGroup", t, func() {
 		pg := NewPingGroup(time.Now(), time.Now())
 
 		Convey("addResTime()", func() {
@@ -126,6 +126,14 @@ func Test_dal_integration(t *testing.T) {
 				keys := getAllPingKeys()
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
+			})
+			Convey("should return error w/ blank IP", func() {
+				err := SavePing("", time.Now(), 0)
+				So(err.Error(), ShouldEqual, IPRequiredError)
+			})
+			Convey("should return error w/ response time < -1", func() {
+				err := SavePing(ip, time.Now(), -2.0)
+				So(err.Error(), ShouldEqual, ResponseTimeOutOfRangeError)
 			})
 		})
 
