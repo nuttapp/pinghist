@@ -12,8 +12,8 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const BucketNotFoundError = "Could not find bucket"
-const KeyNotFoundError = "Could not find key"
+const BucketNotFoundError = "could not find bucket"
+const KeyNotFoundError = "could not find key"
 
 type PingGroup struct {
 	Start     time.Time
@@ -99,9 +99,9 @@ func NewDAL() *DAL {
 
 // SavePingWithTransaction will save a ping to bolt using the given bolt transaction
 func (dal *DAL) SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
-	pings := tx.Bucket([]byte("pings_by_minute"))
+	pings := tx.Bucket([]byte(dal.pingsBucket))
 	if pings == nil {
-		return fmt.Errorf("%s: pings_by_minute", BucketNotFoundError)
+		return fmt.Errorf("dal.SavePingWithTransaction: %s %s", BucketNotFoundError, dal.pingsBucket)
 	}
 
 	key := GetPingKey(ip, starTime)
@@ -122,7 +122,7 @@ func (dal *DAL) SavePingWithTransaction(ip string, starTime time.Time, responseT
 
 	err = pings.Put(key, val)
 	if err != nil {
-		return fmt.Errorf("Error writing key: %s", err)
+		return fmt.Errorf("dal.SavePingWithTransaction: error writing key: %s", err)
 	}
 
 	return nil

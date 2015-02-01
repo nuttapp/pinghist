@@ -213,6 +213,19 @@ func Test_dal_integration(t *testing.T) {
 		})
 
 		Convey("SavePingWithTransaction()", func() {
+			Convey("should return error when key is too large", func() {
+				db, err := bolt.Open(d.fileName, 0600, nil)
+				So(err, ShouldBeNil)
+				defer db.Close()
+				err = db.Update(func(tx *bolt.Tx) error {
+					b := make([]byte, 130000)
+					largeKey := string(b)
+					return d.SavePingWithTransaction(largeKey, time.Time{}, 1.0, tx)
+				})
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, "key too large")
+				fmt.Println("\n" + err.Error())
+			})
 			Convey("should return error when it can't find bucket", func() {
 				db, err := bolt.Open(d.fileName, 0600, nil)
 				So(err, ShouldBeNil)
@@ -228,7 +241,9 @@ func Test_dal_integration(t *testing.T) {
 				err = db.Update(func(tx *bolt.Tx) error {
 					return d.SavePingWithTransaction("", time.Time{}, 1.0, tx)
 				})
-				So(err.Error(), ShouldStartWith, BucketNotFoundError)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
+				fmt.Println("\n" + err.Error())
 			})
 		})
 	})
