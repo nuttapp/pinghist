@@ -237,7 +237,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
 		if pings == nil {
-			return errors.New("Couldn't find pings_by_minute bucket")
+			return fmt.Errorf("dal.GetPings: %s %s", BucketNotFoundError, dal.pingsBucket)
 		}
 		c := pings.Cursor()
 
