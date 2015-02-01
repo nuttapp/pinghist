@@ -5,9 +5,6 @@ module.exports = function(grunt) {
         shell: {
             go_install: {
                 command: "go install ./...",
-                options: {
-                    failOnError: true
-                }
             },
             del_db: {
                 command: "rm dal/pinghist.db",
