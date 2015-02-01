@@ -214,9 +214,9 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 	return pingTime, float64(resTime), nil
 }
 
-// GetPings returns pings between the start time and end time, for the given IP
-//	grouped by the given duration.
-// Start and end should be in UTC
+// GetPings returns pings between the start time and end time, for the given IP,
+// grouped by the given duration.
+// Start and end time should be in UTC
 // gruupBy can be any valid time.Duration, ex: 1 * time.Hour
 // Returns a summary for each PingGroup with avg and std deviation
 func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
