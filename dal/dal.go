@@ -112,13 +112,21 @@ func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32
 	return nil
 }
 
+const (
+	IPRequiredError             = "IP can't be empty"
+	ResponseTimeOutOfRangeError = "Response time must be >= -1"
+)
+
 // SavePing will save a ping to bolt
 // Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
 // The pings within a minute are stored as an array of bytes for fast
 // serialization/deserialization and to minimize the size of the value (see SerializePingRes)
 func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
-		return errors.New("ip can't be empty")
+		return errors.New(IPRequiredError)
+	}
+	if responseTime < -1 {
+		return errors.New(ResponseTimeOutOfRangeError)
 	}
 
 	db, err := bolt.Open("pinghist.db", 0600, nil)
