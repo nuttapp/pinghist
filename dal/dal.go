@@ -81,6 +81,19 @@ func NewPingGroup(start, end time.Time) *PingGroup {
 	return pg
 }
 
+type DAL struct {
+	path     string
+	fileName string
+}
+
+func NewDAL() *DAL {
+	dal := &DAL{
+		path:     "",
+		fileName: "pinghist.db",
+	}
+	return dal
+}
+
 // SavePingWithTransaction will save a ping to bolt using the given bolt transaction
 func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
 	pings := tx.Bucket([]byte("pings_by_minute"))
@@ -112,6 +125,7 @@ func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32
 	return nil
 }
 
+// SavePing Errors
 const (
 	IPRequiredError             = "IP can't be empty"
 	ResponseTimeOutOfRangeError = "Response time must be >= -1"
