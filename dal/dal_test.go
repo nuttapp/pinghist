@@ -14,7 +14,7 @@ import (
 )
 
 func Test_dal_unit(t *testing.T) {
-	Convey("dal.PingGroup", t, func() {
+	Convey("PingGroup", t, func() {
 		pg := NewPingGroup(time.Now(), time.Now())
 
 		Convey("addResTime()", func() {
@@ -82,8 +82,7 @@ func Test_dal_unit(t *testing.T) {
 }
 
 func Test_dal_integration(t *testing.T) {
-
-	Convey("dal", t, func() {
+	Convey("DAL", t, func() {
 		d := NewDAL()
 		createTestDB() // run before every Convey(...)
 		Reset(func() {
@@ -135,6 +134,11 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should return error w/ response time < -1", func() {
 				err := d.SavePing(ip, time.Now(), -2.0)
 				So(err.Error(), ShouldEqual, ResponseTimeOutOfRangeError)
+			})
+			Convey("should return error when opening invalid db", func() {
+				d := &DAL{}
+				err := d.SavePing(ip, time.Now(), 1.0)
+				So(err, ShouldNotBeNil)
 			})
 		})
 

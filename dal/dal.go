@@ -146,11 +146,11 @@ func (dal *DAL) SavePing(ip string, starTime time.Time, responseTime float32) er
 		return errors.New(ResponseTimeOutOfRangeError)
 	}
 
-	db, err := bolt.Open("pinghist.db", 0600, nil)
-	defer db.Close()
+	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		return dal.SavePingWithTransaction(ip, starTime, responseTime, tx)
