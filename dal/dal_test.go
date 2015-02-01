@@ -78,7 +78,33 @@ func Test_dal_unit(t *testing.T) {
 				So(pg.resTimes, ShouldBeNil)
 			})
 		})
+
 	})
+
+	Convey("DeserializePingRes()", t, func() {
+		Convey("should deserialize a PingRes", func() {
+			serializedPingRes := []byte{0x1, 0x0, 0x0, 0x0, 0xe, 0xcc, 0x60, 0x78, 0x6a, 0x0, 0x68,
+				0x88, 0xe1, 0xfe, 0xd4, 0x0, 0x0, 0x0, 0x80, 0x3f, 0x0}
+			startTime, resTime, err := DeserializePingRes(serializedPingRes)
+			So(err, ShouldBeNil)
+			So(startTime.Format(time.RFC3339), ShouldEqual, "2015-02-01T14:41:30-05:00")
+			So(resTime, ShouldEqual, 1.0)
+		})
+		Convey("should return error with invalid date", func() {
+			serializedPingRes := []byte{0x9, 0x0, 0x0, 0x0, 0xe, 0xcc, 0x60, 0x78, 0x6a, 0x0, 0x68,
+				0x88, 0xe1, 0xfe, 0xd4, 0x0, 0x0, 0x0, 0x80, 0x3f, 0x0}
+			_, _, err := DeserializePingRes(serializedPingRes)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, TimeDeserializationError)
+		})
+		Convey("should return error with byte length ", func() {
+			serializedPingRes := []byte{}
+			_, _, err := DeserializePingRes(serializedPingRes)
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldContainSubstring, InvalidByteLength)
+		})
+	})
+
 }
 
 func Test_dal_integration(t *testing.T) {
@@ -246,6 +272,7 @@ func Test_dal_integration(t *testing.T) {
 				fmt.Println("\n" + err.Error())
 			})
 		})
+
 	})
 }
 
