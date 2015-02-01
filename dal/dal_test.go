@@ -246,6 +246,20 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
+			Convey("should return error when it can't find bucket", func() {
+				db, err := bolt.Open(d.fileName, 0600, nil)
+				So(err, ShouldBeNil)
+				err = db.Update(func(tx *bolt.Tx) error {
+					for _, name := range boltBuckets {
+						tx.DeleteBucket([]byte(name))
+					}
+					return nil
+				})
+				db.Close()
+				_, err = d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
+			})
 		})
 
 		Convey("SavePingWithTransaction()", func() {
