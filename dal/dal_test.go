@@ -95,14 +95,14 @@ func Test_dal_integration(t *testing.T) {
 			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
 			responseTime := float32(1.1)
 
-			Convey("should create one key w/ 1 ping", func() {
+			Convey("should create 1 key w/ 1 ping", func() {
 				err := SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
 				keys := getAllPingKeys()
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
-			Convey("should create one key when 2 pings are < 1 minute apart", func() {
+			Convey("should create 1 key when 2 pings are < 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Second) // add a second
 
 				err := SavePing(ip, startTime, responseTime)
