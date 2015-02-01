@@ -81,8 +81,18 @@ func Test_dal_unit(t *testing.T) {
 
 	})
 
+	Convey("SerializePingRes()", t, func() {
+		Convey("Should serialize a ping response", func() {
+			startTime := time.Now()
+			resTime := float32(1.0)
+			bytes, err := SerializePingRes(startTime, resTime)
+			So(err, ShouldBeNil)
+			So(len(bytes), ShouldEqual, PingResByteCount)
+		})
+	})
+
 	Convey("DeserializePingRes()", t, func() {
-		Convey("should deserialize a PingRes", func() {
+		Convey("should deserialize a ping response", func() {
 			serializedPingRes := []byte{0x1, 0x0, 0x0, 0x0, 0xe, 0xcc, 0x60, 0x78, 0x6a, 0x0, 0x68,
 				0x88, 0xe1, 0xfe, 0xd4, 0x0, 0x0, 0x0, 0x80, 0x3f, 0x0}
 			startTime, resTime, err := DeserializePingRes(serializedPingRes)
