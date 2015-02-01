@@ -241,8 +241,8 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		}
 		c := pings.Cursor()
 
-		min := []byte(ipAddress + "_" + start.Format(time.RFC3339))
-		max := []byte(ipAddress + "_" + end.Format(time.RFC3339))
+		min := GetPingKey(ipAddress, start)
+		max := GetPingKey(ipAddress, end)
 		currGroup := NewPingGroup(start, start.Add(groupBy))
 		// fmt.Printf("GRP: s:%s - e:%s\n", currGroup.Start.Format("01/02/06 3:04:05 pm"), currGroup.End.Format("01/02/06 3:04:05 pm"))
 
@@ -251,7 +251,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 			for i := 0; i < len(v); i += PingResByteCount {
 				pingTime, resTime, err := DeserializePingRes(v[i : i+PingResByteCount])
 				if err != nil {
-					return err
+					return fmt.Errorf("dal.GetPings: %s", err)
 				}
 
 				// Make sure we don't go beyond our end time
