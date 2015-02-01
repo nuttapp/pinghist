@@ -226,7 +226,7 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 // gruupBy can be any valid time.Duration, ex: 1 * time.Hour
 // Returns a summary for each PingGroup with avg and std deviation
 func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
-	db, err := bolt.Open("pinghist.db", 0600, nil)
+	db, err := bolt.Open(dal.fileName, 0600, nil)
 	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
