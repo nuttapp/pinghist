@@ -98,14 +98,14 @@ func NewDAL() *DAL {
 }
 
 // SavePingWithTransaction will save a ping to bolt using the given bolt transaction
-func (dal *DAL) SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
+func (dal *DAL) SavePingWithTransaction(ip string, startTime time.Time, responseTime float32, tx *bolt.Tx) error {
 	pings := tx.Bucket([]byte(dal.pingsBucket))
 	if pings == nil {
 		return fmt.Errorf("dal.SavePingWithTransaction: %s %s", BucketNotFoundError, dal.pingsBucket)
 	}
 
-	key := GetPingKey(ip, starTime)
-	val, err := SerializePingRes(starTime, responseTime)
+	key := GetPingKey(ip, startTime)
+	val, err := SerializePingRes(startTime, responseTime)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ const (
 // Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
 // The pings within a minute are stored as an array of bytes for fast
 // serialization/deserialization and to minimize the size of the value (see SerializePingRes)
-func (dal *DAL) SavePing(ip string, starTime time.Time, responseTime float32) error {
+func (dal *DAL) SavePing(ip string, startTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
 		return errors.New(IPRequiredError)
 	}
@@ -153,7 +153,7 @@ func (dal *DAL) SavePing(ip string, starTime time.Time, responseTime float32) er
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		return dal.SavePingWithTransaction(ip, starTime, responseTime, tx)
+		return dal.SavePingWithTransaction(ip, startTime, responseTime, tx)
 	})
 
 	return err
