@@ -12,8 +12,17 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const BucketNotFoundError = "could not find bucket"
-const KeyNotFoundError = "could not find key"
+const (
+	// Bolt errors
+	BucketNotFoundError = "could not find bucket"
+	KeyNotFoundError    = "could not find key"
+	// SavePing Errors
+	IPRequiredError             = "IP can't be empty"
+	ResponseTimeOutOfRangeError = "Response time must be >= -1"
+	// Deserialize PingRes Errors
+	TimeDeserializationError = "couldn't unmarshal bytes to time.Time"
+	InvalidByteLength        = "invaid # of bytes"
+)
 
 type PingGroup struct {
 	Start     time.Time
@@ -128,12 +137,6 @@ func (dal *DAL) SavePingWithTransaction(ip string, startTime time.Time, response
 	return nil
 }
 
-// SavePing Errors
-const (
-	IPRequiredError             = "IP can't be empty"
-	ResponseTimeOutOfRangeError = "Response time must be >= -1"
-)
-
 // SavePing will save a ping to bolt
 // Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
 // The pings within a minute are stored as an array of bytes for fast
@@ -204,11 +207,11 @@ func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
 func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 	pingTime := &time.Time{}
 	if len(data) != PingResByteCount {
-		return nil, 0, errors.New("Invalid data length")
+		return nil, 0, fmt.Errorf("DeserializePingRes: %s", InvalidByteLength)
 	}
 	err := pingTime.UnmarshalBinary(data[0:PingResTimestampByteCount])
 	if err != nil {
-		return nil, 0, errors.New("Couldn't unmarshal bytes to time")
+		return nil, 0, fmt.Errorf("DeserializePingRes: %s", TimeDeserializationError)
 	}
 
 	responseTimeOffset := PingResTimestampByteCount + 1
