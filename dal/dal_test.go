@@ -120,7 +120,7 @@ func Test_dal_unit(t *testing.T) {
 func Test_dal_integration(t *testing.T) {
 	Convey("DAL", t, func() {
 		d := NewDAL()
-		createTestDB() // run before every Convey(...)
+		resetTestDB() // run before every Convey below
 		Reset(func() {
 			os.Remove("pinghist.db")
 		})
@@ -264,6 +264,28 @@ func Test_dal_integration(t *testing.T) {
 				d.fileName = ""
 				_, err := d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
+			})
+			Convey("should return error when it can't deserialize ping response (value of key)", func() {
+				ip := "127.0.0.1"
+				startTime := time.Now()
+
+				db, err := bolt.Open(d.fileName, 0600, nil)
+				So(err, ShouldBeNil)
+				// add a garbage value to our pings bucket manually
+				err = db.Update(func(tx *bolt.Tx) error {
+					pings, err := tx.CreateBucketIfNotExists([]byte(d.pingsBucket))
+					So(err, ShouldBeNil)
+					key := GetPingKey(ip, startTime)
+					val := make([]byte, 25)
+					return pings.Put(key, val)
+				})
+				db.Close()
+				So(err, ShouldBeNil)
+
+				groups, err := d.GetPings(ip, startTime, startTime, 1*time.Second)
+				So(groups, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, TimeDeserializationError)
 			})
 		})
 
@@ -432,10 +454,10 @@ func createTestDB() {
 
 func resetTestDB() {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
-	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 
 	db.Update(func(tx *bolt.Tx) error {
 		// create buckets
