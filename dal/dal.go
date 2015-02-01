@@ -82,20 +82,23 @@ func NewPingGroup(start, end time.Time) *PingGroup {
 }
 
 type DAL struct {
-	path     string
-	fileName string
+	path        string
+	fileName    string
+	pingsBucket string
 }
 
+// NewDAL creates a new Data Access Layer with defaults for all fields
 func NewDAL() *DAL {
 	dal := &DAL{
-		path:     "",
-		fileName: "pinghist.db",
+		path:        "",
+		fileName:    "pinghist.db",
+		pingsBucket: "pings_by_minute",
 	}
 	return dal
 }
 
 // SavePingWithTransaction will save a ping to bolt using the given bolt transaction
-func SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
+func (dal *DAL) SavePingWithTransaction(ip string, starTime time.Time, responseTime float32, tx *bolt.Tx) error {
 	pings := tx.Bucket([]byte("pings_by_minute"))
 	if pings == nil {
 		return fmt.Errorf("%s: pings_by_minute", BucketNotFoundError)
@@ -135,7 +138,7 @@ const (
 // Pings are keyed by minute, so, every minute can store a max of 60 pings (1 p/sec)
 // The pings within a minute are stored as an array of bytes for fast
 // serialization/deserialization and to minimize the size of the value (see SerializePingRes)
-func SavePing(ip string, starTime time.Time, responseTime float32) error {
+func (dal *DAL) SavePing(ip string, starTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
 		return errors.New(IPRequiredError)
 	}
@@ -150,7 +153,7 @@ func SavePing(ip string, starTime time.Time, responseTime float32) error {
 	}
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		return SavePingWithTransaction(ip, starTime, responseTime, tx)
+		return dal.SavePingWithTransaction(ip, starTime, responseTime, tx)
 	})
 
 	return err
@@ -219,7 +222,7 @@ func DeserializePingRes(data []byte) (*time.Time, float64, error) {
 // Start and end time should be in UTC
 // gruupBy can be any valid time.Duration, ex: 1 * time.Hour
 // Returns a summary for each PingGroup with avg and std deviation
-func GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
+func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Duration) ([]*PingGroup, error) {
 	db, err := bolt.Open("pinghist.db", 0600, nil)
 	defer db.Close()
 	if err != nil {
