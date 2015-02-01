@@ -3,7 +3,6 @@ package dal
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -142,10 +141,10 @@ func (dal *DAL) SavePingWithTransaction(ip string, startTime time.Time, response
 // serialization/deserialization and to minimize the size of the value (see SerializePingRes)
 func (dal *DAL) SavePing(ip string, startTime time.Time, responseTime float32) error {
 	if len(ip) == 0 {
-		return errors.New(IPRequiredError)
+		return fmt.Errorf("dal.SavePing: %s", IPRequiredError)
 	}
 	if responseTime < -1 {
-		return errors.New(ResponseTimeOutOfRangeError)
+		return fmt.Errorf("dal.SavePing: %s", ResponseTimeOutOfRangeError)
 	}
 
 	db, err := bolt.Open(dal.fileName, 0600, nil)
