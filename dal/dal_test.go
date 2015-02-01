@@ -260,6 +260,11 @@ func Test_dal_integration(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
 			})
+			Convey("should return error when it can't open db ", func() {
+				d.fileName = ""
+				_, err := d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
+				So(err, ShouldNotBeNil)
+			})
 		})
 
 		Convey("SavePingWithTransaction()", func() {
