@@ -84,6 +84,7 @@ func Test_dal_unit(t *testing.T) {
 func Test_dal_integration(t *testing.T) {
 
 	Convey("dal", t, func() {
+		d := NewDAL()
 		createTestDB() // run before every Convey(...)
 		Reset(func() {
 			os.Remove("pinghist.db")
@@ -96,7 +97,7 @@ func Test_dal_integration(t *testing.T) {
 			responseTime := float32(1.1)
 
 			Convey("should create 1 key w/ 1 ping", func() {
-				err := SavePing(ip, startTime, responseTime)
+				err := d.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
 				keys := getAllPingKeys()
@@ -105,10 +106,10 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should create 1 key when 2 pings are < 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Second) // add a second
 
-				err := SavePing(ip, startTime, responseTime)
+				err := d.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				err = SavePing(ip, startTime2, responseTime)
+				err = d.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
 				keys := getAllPingKeys()
@@ -117,10 +118,10 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should create 2 keys when 2 pings are > 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Minute) // add a minute
 
-				err := SavePing(ip, startTime, responseTime)
+				err := d.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				err = SavePing(ip, startTime2, responseTime)
+				err = d.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
 				keys := getAllPingKeys()
@@ -128,11 +129,11 @@ func Test_dal_integration(t *testing.T) {
 				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
 			})
 			Convey("should return error w/ blank IP", func() {
-				err := SavePing("", time.Now(), 0)
+				err := d.SavePing("", time.Now(), 0)
 				So(err.Error(), ShouldEqual, IPRequiredError)
 			})
 			Convey("should return error w/ response time < -1", func() {
-				err := SavePing(ip, time.Now(), -2.0)
+				err := d.SavePing(ip, time.Now(), -2.0)
 				So(err.Error(), ShouldEqual, ResponseTimeOutOfRangeError)
 			})
 		})
@@ -151,7 +152,7 @@ func Test_dal_integration(t *testing.T) {
 				groupBy := 1 * time.Hour
 				// fmt.Printf("%s - %s\n", start.Format(tfmt), endti.Format(tfmt))
 
-				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 24)            // there should be 1 group per hour
 				So(sumReceived(groups), ShouldEqual, 86400) // there should 1 ping for every second in a day
@@ -167,7 +168,7 @@ func Test_dal_integration(t *testing.T) {
 				endti = endti.UTC()
 				groupBy := 15 * time.Minute
 
-				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 4)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
@@ -183,7 +184,7 @@ func Test_dal_integration(t *testing.T) {
 				endti = endti.UTC()
 				groupBy := 1 * time.Second
 
-				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(sumReceived(groups), ShouldEqual, 60)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
@@ -198,7 +199,7 @@ func Test_dal_integration(t *testing.T) {
 				endti = endti.UTC()
 				groupBy := 1 * time.Second
 
-				groups, err := GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 30)
 				So(sumReceived(groups), ShouldEqual, 30)
@@ -236,13 +237,14 @@ func seedTestDB(startTime, endTime string) {
 	end, _ := time.ParseInLocation(tfmt, endTime, l)
 	start = start.UTC()
 	end = end.UTC()
+	dal := NewDAL()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
 		for pt := start; pt.Sub(end) != 0; pt = pt.Add(1 * time.Second) {
 			resTime := rand.Float32()*(maxRes-minRes) + minRes
 
-			err := SavePingWithTransaction(ip, pt, resTime, tx)
+			err := dal.SavePingWithTransaction(ip, pt, resTime, tx)
 			if err != nil {
 				return err
 			}
