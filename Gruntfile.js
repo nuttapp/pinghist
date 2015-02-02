@@ -23,7 +23,7 @@ module.exports = function(grunt) {
                 }
             },
             db_info: {
-                command: "db_info.sh"
+                command: "test_db_info.sh"
             }
         },
         watch: {
