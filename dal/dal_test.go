@@ -120,9 +120,9 @@ func Test_dal_unit(t *testing.T) {
 func Test_dal_integration(t *testing.T) {
 	Convey("DAL", t, func() {
 		d := NewDAL()
-		resetTestDB() // run before every Convey below
+		resetTestDB(d) // run before every Convey below
 		Reset(func() {
-			os.Remove("pinghist.db")
+			os.Remove(d.fileName)
 		})
 
 		Convey("SavePing()", func() {
@@ -431,29 +431,8 @@ func writeTable(groups []*PingGroup) {
 
 var boltBuckets = []string{"pings_by_minute"}
 
-// createTestDB will create an empty Bolt DB and buckets
-func createTestDB() {
-	db, err := bolt.Open("pinghist.db", 0600, nil)
-	defer db.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db.Update(func(tx *bolt.Tx) error {
-		// create buckets
-		for _, bucketName := range boltBuckets {
-			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
-			}
-		}
-
-		return nil
-	})
-}
-
-func resetTestDB() {
-	db, err := bolt.Open("pinghist.db", 0600, nil)
+func resetTestDB(dal *DAL) {
+	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
