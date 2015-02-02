@@ -135,7 +135,7 @@ func Test_dal_integration(t *testing.T) {
 				err := d.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys()
+				keys := getAllPingKeys(d)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
 			Convey("should create 1 key when 2 pings are < 1 minute apart", func() {
@@ -147,7 +147,7 @@ func Test_dal_integration(t *testing.T) {
 				err = d.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys()
+				keys := getAllPingKeys(d)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
 			Convey("should create 2 keys when 2 pings are > 1 minute apart", func() {
@@ -159,7 +159,7 @@ func Test_dal_integration(t *testing.T) {
 				err = d.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys()
+				keys := getAllPingKeys(d)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
 			})
@@ -183,7 +183,7 @@ func Test_dal_integration(t *testing.T) {
 			tfmt := "01/02/06 03:04:05 pm"
 
 			Convey("should return 24 groups, 1 hour in each group", func() {
-				seedTestDB("01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
+				seedTestDB(d, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", l)
@@ -200,7 +200,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return  4 groups, 15 minutes in each group", func() {
-				seedTestDB("01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
+				seedTestDB(d, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
@@ -216,7 +216,7 @@ func Test_dal_integration(t *testing.T) {
 				So(sumReceived(groups), ShouldEqual, 3600)
 			})
 			Convey("should return 60 groups, 1 second in each group", func() {
-				seedTestDB("01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
+				seedTestDB(d, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:02:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:03:00 pm", l)
@@ -231,7 +231,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return 30 groups, 1 second in each group", func() {
-				seedTestDB("01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
+				seedTestDB(d, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
@@ -334,10 +334,10 @@ func sumReceived(groups []*PingGroup) int {
 }
 
 // seedTestDB will seed the db every second betwene the given times
-func seedTestDB(startTime, endTime string) {
+func seedTestDB(dal *DAL, startTime, endTime string) {
 	const tfmt = "01/02/06 03:04:05 pm"
 
-	db, err := bolt.Open("pinghist.db", 0600, nil)
+	db, err := bolt.Open(dal.fileName, 0600, nil)
 	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -352,7 +352,6 @@ func seedTestDB(startTime, endTime string) {
 	end, _ := time.ParseInLocation(tfmt, endTime, l)
 	start = start.UTC()
 	end = end.UTC()
-	dal := NewDAL()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
@@ -373,8 +372,8 @@ func seedTestDB(startTime, endTime string) {
 	}
 }
 
-func getAllPingKeys() []string {
-	db, err := bolt.Open("pinghist.db", 0600, nil)
+func getAllPingKeys(dal *DAL) []string {
+	db, err := bolt.Open(dal.fileName, 0600, nil)
 	defer db.Close()
 	if err != nil {
 		log.Fatal(err)
