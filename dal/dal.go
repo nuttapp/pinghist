@@ -3,8 +3,10 @@ package dal
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -18,7 +20,7 @@ const (
 	IPRequiredError             = "IP can't be empty"
 	ResponseTimeOutOfRangeError = "Response time must be >= -1"
 	// Deserialize PingRes Errors
-	TimeDeserializationError = "couldn't unmarshal bytes to time.Time"
+	TimeDeserializationError = "second offset is too large (> 59)"
 	InvalidByteLength        = "invaid # of bytes"
 )
 
@@ -112,10 +114,7 @@ func (dal *DAL) SavePingWithTransaction(ip string, startTime time.Time, response
 	}
 
 	key := GetPingKey(ip, startTime)
-	val, err := SerializePingRes(startTime, responseTime)
-	if err != nil {
-		return err
-	}
+	val := SerializePingRes(startTime, responseTime)
 
 	v := pings.Get(key)
 	if v != nil {
@@ -127,7 +126,7 @@ func (dal *DAL) SavePingWithTransaction(ip string, startTime time.Time, response
 		val = newVal
 	}
 
-	err = pings.Put(key, val)
+	err := pings.Put(key, val)
 	if err != nil {
 		return fmt.Errorf("dal.SavePingWithTransaction: error writing key: %s", err)
 	}
@@ -172,50 +171,47 @@ func GetPingKey(ip string, pingStartTime time.Time) []byte {
 }
 
 const (
-	PingResByteCount          = 21 // total bytes = time bytes + 1 + float32 bytes + 1
-	PingResTimestampByteCount = 15 // time.Time
-	PingResTimeByteCount      = 4  // float32
+	PingResByteCount          = 7 // total bytes = time bytes + 1 + float32 bytes + 1
+	PingResTimestampByteCount = 1 // time.Time.Second()
+	PingResTimeByteCount      = 4 // float32
 )
 
-// SerializePingRes converts startTime and resTime to a 21 byte array
+// SerializePingRes converts startTime and resTime to a 7 byte array
 // startTime is the time the ping was initated
 // resTime is the amount of time it took to return the ping packet
-// endTime = startTime + resTime
-// Format: 21 bytes
-// | 15 bytes  | 1 byte  | 4 bytes | 1 byte
-// | startTime | padding | resTime | padding
+// endTime = baseKey + startTime + resTime
+// Format: 7 bytes
+// | 1 byte  | 1 byte  | 4 bytes | 1 byte
+// | seconds | padding | resTime | padding
 // TODO Convert to PingRes struct w/ method MarshalBinary()
 // TODO Remove serialization of datetime entirely, use a single byte as an offset in seconds
-func SerializePingRes(startTime time.Time, resTime float32) ([]byte, error) {
+func SerializePingRes(startTime time.Time, resTime float32) []byte {
 	buff := make([]byte, PingResByteCount)
 	floatBytes := Float32bytes(resTime)
-	timeBytes, err := startTime.MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't marshal startTime as binary: %s", err)
-	}
+
+	timeBytes := []byte{uint8(startTime.Second())}
 
 	copy(buff[0:PingResTimestampByteCount], timeBytes)
 	responseTimeOffset := PingResTimestampByteCount + 1
 	copy(buff[responseTimeOffset:responseTimeOffset+PingResTimeByteCount], floatBytes)
 
-	return buff, nil
+	return buff
 }
 
 // DeserializePingRes does the opposite of SerializePingRes
-func DeserializePingRes(data []byte) (*time.Time, float64, error) {
-	pingTime := &time.Time{}
+func DeserializePingRes(data []byte) (uint8, float64, error) {
 	if len(data) != PingResByteCount {
-		return nil, 0, fmt.Errorf("DeserializePingRes: %s", InvalidByteLength)
+		return 0, 0, errors.New(InvalidByteLength)
 	}
-	err := pingTime.UnmarshalBinary(data[0:PingResTimestampByteCount])
-	if err != nil {
-		return nil, 0, fmt.Errorf("DeserializePingRes: %s", TimeDeserializationError)
+	secondOffset := data[0]
+	if secondOffset > 59 {
+		return 0, 0, errors.New(TimeDeserializationError)
 	}
 
 	responseTimeOffset := PingResTimestampByteCount + 1
 	resTime := Float32frombytes(data[responseTimeOffset : responseTimeOffset+PingResTimeByteCount])
 
-	return pingTime, float64(resTime), nil
+	return secondOffset, float64(resTime), nil
 }
 
 // GetPings returns pings between the start time and end time, for the given IP,
@@ -246,12 +242,18 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		// fmt.Printf("GRP: s:%s - e:%s\n", currGroup.Start.Format("01/02/06 3:04:05 pm"), currGroup.End.Format("01/02/06 3:04:05 pm"))
 
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
-			// keyParts := strings.Split(string(k), "_")
+			keyParts := strings.Split(string(k), "_")
+			baseTime, err := time.Parse(time.RFC3339, keyParts[1])
+			if err != nil {
+				return fmt.Errorf("dal.GetPings: %s", err)
+			}
+
 			for i := 0; i < len(v); i += PingResByteCount {
-				pingTime, resTime, err := DeserializePingRes(v[i : i+PingResByteCount])
+				secondsOffset, resTime, err := DeserializePingRes(v[i : i+PingResByteCount])
 				if err != nil {
 					return fmt.Errorf("dal.GetPings: %s", err)
 				}
+				pingTime := baseTime.Add(time.Duration(secondsOffset) * time.Second)
 
 				// Make sure we don't go beyond our end time
 				if pingTime.Equal(end) || pingTime.After(end) {
