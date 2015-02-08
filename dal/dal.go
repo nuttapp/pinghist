@@ -246,11 +246,12 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		min := GetPingKey(ipAddress, start)
 		max := GetPingKey(ipAddress, end)
 		currGroup := NewPingGroup(start, start.Add(groupBy))
-		// fmt.Printf("GRP: s:%s - e:%s\n", currGroup.Start.Format("01/02/06 3:04:05 pm"), currGroup.End.Format("01/02/06 3:04:05 pm"))
+		// fmt.Printf("GRPstart: %s \nGRP  end: %s\n", currGroup.Start.Format(time.RFC3339Nano), currGroup.End.Format(time.RFC3339Nano))
 
 		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			keyParts := strings.Split(string(k), "_")
 			baseTime, err := time.Parse(time.RFC3339, keyParts[1])
+			// fmt.Printf("baseTime: %s\n", baseTime.Format(time.RFC3339Nano))
 			if err != nil {
 				return fmt.Errorf("dal.GetPings: %s: %s", KeyTimestampParsingError, err)
 			}
@@ -261,6 +262,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 					return fmt.Errorf("dal.GetPings: %s", err)
 				}
 				pingTime := baseTime.Add(time.Duration(secondsOffset) * time.Second)
+				// fmt.Printf("pingTime: %s\n", pingTime.Format(time.RFC3339Nano))
 
 				// Make sure we don't go beyond our end time
 				if pingTime.Equal(end) || pingTime.After(end) {
