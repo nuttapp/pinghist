@@ -34,7 +34,7 @@ func Test_main_unit(t *testing.T) {
 
 		for teststr, goodstr := range testTable {
 			Convey("Given "+teststr, func() {
-				Convey("Time should equal "+goodstr, func() {
+				Convey("time should equal "+goodstr, func() {
 					t, err := ParseTime(teststr)
 					So(err, ShouldBeNil)
 					So(t.Format(time.RFC3339), ShouldEqual, goodstr)
