@@ -186,7 +186,6 @@ const (
 // | 1 byte  | 1 byte  | 4 bytes | 1 byte
 // | seconds | padding | resTime | padding
 // TODO Convert to PingRes struct w/ method MarshalBinary()
-// TODO Remove serialization of datetime entirely, use a single byte as an offset in seconds
 func SerializePingRes(startTime time.Time, resTime float32) []byte {
 	buff := make([]byte, PingResByteCount)
 	floatBytes := Float32bytes(resTime)
