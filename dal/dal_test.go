@@ -347,32 +347,32 @@ func Test_dal_integration(t *testing.T) {
 	})
 }
 
-func Test_dal_seed(t *testing.T) {
-	// Convey("seed", t, func() {
-	// 	fmt.Println()
-	// 	d := NewDAL()
-	// 	resetTestDB(d)
-	// 	Convey("should return 30 groups, 1 second in each group", func() {
-	// 		// fmt.Println()
-	// 		// l := time.Now().Location()
-	// 		// tfmt := "01/02/06 03:04:05 pm"
-	// 		seedTestDB(d, "01/01/15 03:00:00 pm", "01/01/15 03:00:00 pm")
-	//
-	// 		// start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
-	// 		// endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
-	// 		// start = start.UTC()
-	// 		// endti = endti.UTC()
-	// 		// groupBy := 1 * time.Second
-	// 		//
-	// 		// groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
-	// 		// So(err, ShouldBeNil)
-	// 		// So(len(groups), ShouldEqual, 30)
-	// 		// So(sumReceived(groups), ShouldEqual, 30)
-	// 		// So(groups[0].Start, ShouldHappenOnOrAfter, start)
-	// 		// So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
-	// 	})
-	// })
-}
+// func Test_dal_seed(t *testing.T) {
+// Convey("seed", t, func() {
+// 	fmt.Println()
+// 	d := NewDAL()
+// 	resetTestDB(d)
+// 	Convey("should return 30 groups, 1 second in each group", func() {
+// 		// fmt.Println()
+// 		// l := time.Now().Location()
+// 		// tfmt := "01/02/06 03:04:05 pm"
+// 		seedTestDB(d, "01/01/15 03:00:00 pm", "01/01/15 03:00:00 pm")
+//
+// 		// start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
+// 		// endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
+// 		// start = start.UTC()
+// 		// endti = endti.UTC()
+// 		// groupBy := 1 * time.Second
+// 		//
+// 		// groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
+// 		// So(err, ShouldBeNil)
+// 		// So(len(groups), ShouldEqual, 30)
+// 		// So(sumReceived(groups), ShouldEqual, 30)
+// 		// So(groups[0].Start, ShouldHappenOnOrAfter, start)
+// 		// So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
+// 	})
+// })
+// }
 
 func sumReceived(groups []*PingGroup) int {
 	totalPings := 0
