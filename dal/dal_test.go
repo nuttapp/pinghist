@@ -276,7 +276,7 @@ func Test_dal_integration(t *testing.T) {
 					So(err, ShouldBeNil)
 					key := GetPingKey(ip, startTime)
 					val := make([]byte, 25)
-					val[0] = 60 // the seconds offset should be > 59
+					val[0] = 60 // the seconds offset should be between 0-59...
 					return pings.Put(key, val)
 				})
 				db.Close()
