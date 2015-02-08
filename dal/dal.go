@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -106,6 +107,28 @@ func NewDAL() *DAL {
 		pingsBucket: "pings_by_minute",
 	}
 	return dal
+}
+
+var boltBuckets = []string{"pings_by_minute"}
+
+func (dal *DAL) CreateBuckets() {
+	db, err := bolt.Open(dal.fileName, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	db.Update(func(tx *bolt.Tx) error {
+		// create buckets
+		for _, bucketName := range boltBuckets {
+			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+		}
+
+		return nil
+	})
 }
 
 // SavePingWithTransaction will save a ping to bolt using the given bolt transaction
