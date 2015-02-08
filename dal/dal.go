@@ -254,10 +254,11 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 	}
 	defer db.Close()
 
+	// we don't care about nanoseconds when comparing to our group start/end times
 	groups := make([]*PingGroup, 0, 5)
-	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
 	start = StripNano(start)
 	end = StripNano(end)
+	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
 
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
