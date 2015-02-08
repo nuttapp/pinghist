@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/nuttapp/pinghist/dal"
+	"github.com/nuttapp/pinghist/ping"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -41,5 +44,36 @@ func Test_main_unit(t *testing.T) {
 				})
 			})
 		}
+	})
+}
+
+func Test_main_integration(t *testing.T) {
+	Convey("Should ping localhost once and save to db", t, func() {
+		Reset(func() {
+			os.Remove("pinghist.db")
+		})
+		ip := "127.0.0.1"
+		startTime := time.Now()
+
+		pr, err := ping.Ping(ip)
+		So(pr, ShouldNotBeNil)
+		So(err, ShouldBeNil)
+
+		d := dal.NewDAL()
+		d.CreateBuckets()
+		err = d.SavePing(ip, startTime, float32(pr.Time))
+		So(err, ShouldBeNil)
+
+		groups, err := d.GetPings(ip, startTime, startTime.Add(1*time.Minute), 1*time.Hour)
+
+		So(err, ShouldBeNil)
+		So(len(groups), ShouldEqual, 1)
+		So(groups[0].MaxTime, ShouldEqual, pr.Time)
+		So(groups[0].MinTime, ShouldEqual, pr.Time)
+		So(groups[0].AvgTime, ShouldEqual, pr.Time)
+		So(groups[0].StdDev, ShouldEqual, 0)
+		So(groups[0].Received, ShouldEqual, 1)
+		So(groups[0].Timedout, ShouldEqual, 0)
+		So(groups[0].TotalTime, ShouldEqual, pr.Time)
 	})
 }
