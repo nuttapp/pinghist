@@ -97,7 +97,7 @@ func Test_dal_unit(t *testing.T) {
 			secondsOffset, resTime, err := DeserializePingRes(serializedPingRes)
 			So(err, ShouldEqual, nil)
 			So(secondsOffset, ShouldEqual, 2)
-			So(resTime, ShouldEqual, float32(1.1))
+			So(resTime, ShouldEqual, 1.1)
 		})
 		Convey("should return error with invalid date", func() {
 			fb := Float32bytes(1.1)
