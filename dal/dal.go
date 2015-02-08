@@ -215,6 +215,10 @@ func DeserializePingRes(data []byte) (uint8, float64, error) {
 	return secondOffset, float64(resTime), nil
 }
 
+func StripNano(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, t.Location())
+}
+
 // GetPings returns pings between the start time and end time, for the given IP,
 // grouped by the given duration.
 // Start and end time should be in UTC
@@ -229,6 +233,8 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 
 	groups := make([]*PingGroup, 0, 5)
 	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
+	start = StripNano(start)
+	end = StripNano(end)
 
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
