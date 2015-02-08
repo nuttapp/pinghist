@@ -22,6 +22,8 @@ const (
 	// Deserialize PingRes Errors
 	TimeDeserializationError = "second offset is too large (> 59)"
 	InvalidByteLength        = "invaid # of bytes"
+	// GetPings Errors
+	KeyTimestampParsingError = "Can't parse key timestamp"
 )
 
 type PingGroup struct {
@@ -232,7 +234,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
 		if pings == nil {
-			return fmt.Errorf("dal.GetPings: %s %s", BucketNotFoundError, dal.pingsBucket)
+			return fmt.Errorf("dal.GetPings: %s: %s", BucketNotFoundError, dal.pingsBucket)
 		}
 		c := pings.Cursor()
 
@@ -245,7 +247,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 			keyParts := strings.Split(string(k), "_")
 			baseTime, err := time.Parse(time.RFC3339, keyParts[1])
 			if err != nil {
-				return fmt.Errorf("dal.GetPings: %s", err)
+				return fmt.Errorf("dal.GetPings: %s: %s", KeyTimestampParsingError, err)
 			}
 
 			for i := 0; i < len(v); i += PingResByteCount {

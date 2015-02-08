@@ -264,6 +264,28 @@ func Test_dal_integration(t *testing.T) {
 				_, err := d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
 			})
+			Convey("should return error when it deserialize key timestamp", func() {
+				ip := "127.0.0.1"
+				startTime := time.Now()
+
+				db, err := bolt.Open(d.fileName, 0600, nil)
+				So(err, ShouldBeNil)
+				// add a garbage value to our pings bucket manually
+				err = db.Update(func(tx *bolt.Tx) error {
+					pings, err := tx.CreateBucketIfNotExists([]byte(d.pingsBucket))
+					So(err, ShouldBeNil)
+					key := GetPingKey(ip, startTime)
+					key = append(key, []byte("break-the-RFC3399-timestamp")...)
+					return pings.Put(key, nil)
+				})
+				db.Close()
+
+				So(err, ShouldBeNil)
+				groups, err := d.GetPings(ip, startTime, startTime, 1*time.Second)
+				So(groups, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, KeyTimestampParsingError)
+			})
 			Convey("should return error when it can't deserialize ping response (value of key)", func() {
 				ip := "127.0.0.1"
 				startTime := time.Now()
