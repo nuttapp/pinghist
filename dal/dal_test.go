@@ -264,7 +264,7 @@ func Test_dal_integration(t *testing.T) {
 				_, err := d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
 			})
-			SkipConvey("should return error when it can't deserialize ping response (value of key)", func() {
+			Convey("should return error when it can't deserialize ping response (value of key)", func() {
 				ip := "127.0.0.1"
 				startTime := time.Now()
 
@@ -276,6 +276,7 @@ func Test_dal_integration(t *testing.T) {
 					So(err, ShouldBeNil)
 					key := GetPingKey(ip, startTime)
 					val := make([]byte, 25)
+					val[0] = 60 // the seconds offset should be > 59
 					return pings.Put(key, val)
 				})
 				db.Close()
