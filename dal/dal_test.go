@@ -477,8 +477,6 @@ func writeTable(groups []*PingGroup) {
 	table.Render()
 }
 
-var boltBuckets = []string{"pings_by_minute"}
-
 func resetTestDB(dal *DAL) {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
