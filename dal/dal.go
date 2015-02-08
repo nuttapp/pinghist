@@ -235,7 +235,8 @@ func DeserializePingRes(data []byte) (uint8, float64, error) {
 	responseTimeOffset := PingResTimestampByteCount + 1
 	resTime := Float32frombytes(data[responseTimeOffset : responseTimeOffset+PingResTimeByteCount])
 
-	return secondOffset, float64(resTime), nil
+	roundTime := Round(float64(resTime), .5, 3)
+	return secondOffset, roundTime, nil
 }
 
 func StripNano(t time.Time) time.Time {
@@ -322,6 +323,22 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 	}
 
 	return groups, nil
+}
+
+func Round(val float64, roundOn float64, places int) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * val
+	_, div := math.Modf(digit)
+	_div := math.Copysign(div, val)
+	_roundOn := math.Copysign(roundOn, val)
+	if _div >= _roundOn {
+		round = math.Ceil(digit)
+	} else {
+		round = math.Floor(digit)
+	}
+	newVal = round / pow
+	return
 }
 
 func Float32frombytes(bytes []byte) float32 {
