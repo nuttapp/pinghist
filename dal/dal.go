@@ -268,12 +268,13 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		}
 		c := pings.Cursor()
 
+		pre := []byte(ipAddress)
 		min := GetPingKey(ipAddress, start)
 		max := GetPingKey(ipAddress, end)
 		currGroup := NewPingGroup(start, start.Add(groupBy))
 		// fmt.Printf("GRPstart: %s \nGRP  end: %s\n", currGroup.Start.Format(time.RFC3339Nano), currGroup.End.Format(time.RFC3339Nano))
 
-		for k, v := c.Seek(min); k != nil && bytes.Compare(k, max) >= -1; k, v = c.Next() {
+		for k, v := c.Seek(min); k != nil && bytes.HasPrefix(k, pre) && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			keyParts := strings.Split(string(k), "_")
 			baseTime, err := time.Parse(time.RFC3339, keyParts[1])
 			// fmt.Printf("baseTime: %s\n", baseTime.Format(time.RFC3339Nano))
