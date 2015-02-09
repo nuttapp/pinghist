@@ -6,38 +6,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func Test_ping_integration(t *testing.T) {
-	Convey("ping", t, func() {
-		Convey("Ping()", func() {
-			Convey("Should ping localhost", func() {
-				pr, err := Ping("localhost")
-				So(pr.Host, ShouldEqual, "localhost")
-				So(err, ShouldBeNil)
-				So(pr, ShouldNotBeNil)
-			})
-			Convey("Should ping 127.0.0.1", func() {
-				pr, err := Ping("localhost")
-				So(pr.Host, ShouldEqual, "localhost")
-				So(pr.IP, ShouldEqual, "127.0.0.1")
-				So(err, ShouldBeNil)
-				So(pr, ShouldNotBeNil)
-			})
-			Convey("Should ping google", func() {
-				pr, err := Ping("google.com")
-				So(err, ShouldBeNil)
-				So(pr, ShouldNotBeNil)
-				So(pr.Host, ShouldEqual, "google.com")
-			})
-			Convey("Should return error with invalid host", func() {
-				pr, err := Ping("=2lsakjf2k34")
-				So(err, ShouldNotBeNil)
-				So(pr, ShouldBeNil)
-			})
-		})
-
-	})
-}
-
 func Test_ping_unit(t *testing.T) {
 
 	Convey("ping", t, func() {
@@ -124,5 +92,37 @@ rtt min/avg/max/mdev = 1.674/1.674/1.674/0.000 ms`),
 				}
 			})
 		})
+	})
+}
+
+func Test_ping_integration(t *testing.T) {
+	Convey("ping", t, func() {
+		Convey("Ping()", func() {
+			Convey("Should ping localhost", func() {
+				pr, err := Ping("localhost")
+				So(pr.Host, ShouldEqual, "localhost")
+				So(err, ShouldBeNil)
+				So(pr, ShouldNotBeNil)
+			})
+			Convey("Should ping 127.0.0.1", func() {
+				pr, err := Ping("localhost")
+				So(pr.Host, ShouldEqual, "localhost")
+				So(pr.IP, ShouldEqual, "127.0.0.1")
+				So(err, ShouldBeNil)
+				So(pr, ShouldNotBeNil)
+			})
+			Convey("Should ping google", func() {
+				pr, err := Ping("google.com")
+				So(err, ShouldBeNil)
+				So(pr, ShouldNotBeNil)
+				So(pr.Host, ShouldEqual, "google.com")
+			})
+			Convey("Should return error with invalid host", func() {
+				pr, err := Ping("=2lsakjf2k34")
+				So(err, ShouldNotBeNil)
+				So(pr, ShouldBeNil)
+			})
+		})
+
 	})
 }
