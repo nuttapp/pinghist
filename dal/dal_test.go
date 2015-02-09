@@ -179,10 +179,31 @@ func Test_dal_integration(t *testing.T) {
 
 		Convey("GetPings()", func() {
 			l := time.Now().Location()
+			ip := "127.0.0.1"
 			tfmt := "01/02/06 03:04:05 pm"
 
+			Convey("Should seed db with differnt IPs and not return other IPs", func() {
+				resetTestDB(d) // run before every Convey below
+				ip1 := ip
+				ip2 := "167.206.245.222"
+				seedTestDB(d, ip1, "01/03/15 04:00:00 pm", "01/03/15 04:02:00 pm")
+				seedTestDB(d, ip2, "01/03/15 04:00:00 pm", "01/03/15 04:01:00 pm")
+
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
+				endti, _ := time.ParseInLocation(tfmt, "01/04/15 04:07:00 pm", l)
+				start = start.UTC()
+				endti = endti.UTC()
+				groupBy := 1 * time.Minute
+
+				groups, err := d.GetPings(ip1, start, endti, groupBy)
+				So(err, ShouldBeNil)
+				So(groups, ShouldNotBeNil)
+				// before this fix it would return 4 groups
+				So(len(groups), ShouldEqual, 2)
+			})
+
 			Convey("should return 24 groups, 1 hour in each group", func() {
-				seedTestDB(d, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
+				seedTestDB(d, ip, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", l)
@@ -199,7 +220,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return  4 groups, 15 minutes in each group", func() {
-				seedTestDB(d, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
+				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
@@ -215,7 +236,7 @@ func Test_dal_integration(t *testing.T) {
 				So(sumReceived(groups), ShouldEqual, 3600)
 			})
 			Convey("should return 60 groups, 1 second in each group", func() {
-				seedTestDB(d, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
+				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:02:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:03:00 pm", l)
@@ -230,7 +251,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return 30 groups, 1 second in each group", func() {
-				seedTestDB(d, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
+				seedTestDB(d, ip, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
@@ -383,7 +404,7 @@ func sumReceived(groups []*PingGroup) int {
 }
 
 // seedTestDB will seed the db every second betwene the given times
-func seedTestDB(dal *DAL, startTime, endTime string) {
+func seedTestDB(dal *DAL, ip, startTime, endTime string) {
 	const tfmt = "01/02/06 03:04:05 pm"
 
 	db, err := bolt.Open(dal.fileName, 0600, nil)
@@ -392,7 +413,6 @@ func seedTestDB(dal *DAL, startTime, endTime string) {
 		log.Fatal(err)
 	}
 
-	ip := "127.0.0.1"
 	maxRes, minRes := float32(1500.0), float32(5.0)
 	rand.Seed(time.Now().UnixNano())
 
