@@ -259,7 +259,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 	groups := make([]*PingGroup, 0, 5)
 	start = StripNano(start)
 	end = StripNano(end)
-	// fmt.Printf("GetPings() %s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
+	// fmt.Printf("%s - %s\n", start.Format("01/02/06 3:04:05 pm"), end.Format("01/02/06 3:04:05 pm"))
 
 	err = db.View(func(tx *bolt.Tx) error {
 		pings := tx.Bucket([]byte("pings_by_minute"))
@@ -272,7 +272,10 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		min := GetPingKey(ipAddress, start)
 		max := GetPingKey(ipAddress, end)
 		currGroup := NewPingGroup(start, start.Add(groupBy))
+
 		// fmt.Printf("GRPstart: %s \nGRP  end: %s\n", currGroup.Start.Format(time.RFC3339Nano), currGroup.End.Format(time.RFC3339Nano))
+		// fmt.Printf("min     : %s \n", min)
+		// fmt.Printf("max     : %s \n", max)
 
 		for k, v := c.Seek(min); k != nil && bytes.HasPrefix(k, pre) && bytes.Compare(k, max) >= -1; k, v = c.Next() {
 			keyParts := strings.Split(string(k), "_")
