@@ -19,6 +19,7 @@ var (
 	start            string
 	end              string
 	groupBy          string
+	ip               string
 	inputTimeFormats = []string{
 		// full
 		"01/02 03:04 pm",
@@ -57,6 +58,7 @@ const (
 func init() {
 	const (
 		hostUsage         = "The host IP or hostname to ping"
+		ipUsage           = "The ip to query"
 		showExamplesUsage = "Show example usage"
 		startUsage        = "The time to start querying ping times"
 		endUsage          = "The time to end querying ping times (all time up to this point)"
@@ -64,6 +66,8 @@ func init() {
 	)
 
 	flag.BoolVar(&showExamples, "examples", false, showExamplesUsage)
+
+	flag.StringVar(&ip, "ip", "", ipUsage)
 
 	flag.StringVar(&host, "host", "", hostUsage)
 	flag.StringVar(&host, "h", "", "-host")
@@ -110,11 +114,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Can't parse groupby: " + err.Error())
 	}
-	fmt.Printf("st:  %s\n", st)
-	fmt.Printf("ed:  %s\n", et)
-	fmt.Printf("dur: %s\n", dur)
+	// fmt.Printf("st:  %s\n", st)
+	// fmt.Printf("ed:  %s\n", et)
+	// fmt.Printf("dur: %s\n", dur)
 
-	ip := "127.0.0.1"
 	groups, err := d.GetPings(ip, st, et, dur)
 	if err != nil {
 		log.Fatal("Couldn't retreive pings: %s", err)
