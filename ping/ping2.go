@@ -18,7 +18,7 @@ import (
 var TimeOut = 3000 * time.Millisecond
 
 // Ping sends a ping command to a given host, returns whether is host answers or not
-func Ping2(host string) (up bool, err error) {
+func Ping2(host string) (up bool, ms float64, err error) {
 
 	// Don't panic, just return nil
 	defer func() {
@@ -35,7 +35,7 @@ func Ping2(host string) (up bool, err error) {
 
 	c, err := net.Dial("ip:icmp", host)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	c.SetDeadline(time.Now().Add(TimeOut))
@@ -54,44 +54,44 @@ func Ping2(host string) (up bool, err error) {
 	// dataBytes := []byte("ping.gg.ping.gg.ping.gg")
 	b, err := ICMPMsg(icmpv4EchoRequest, 0, xid, xseq, dataBytes)
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	start := time.Now()
 	if _, err := c.Write(b); err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	if _, err := c.Read(b); err != nil {
-		return false, err
+		return false, 0, err
 	}
 	end := time.Now()
-	ms := float64(end.Sub(start)) / float64(time.Millisecond)
-	fmt.Printf("%.3f ms\n", ms)
+	ms = float64(end.Sub(start)) / float64(time.Millisecond)
+	// fmt.Printf("%.3f ms\n", ms)
 
 	b = ipv4Payload(b)
 
 	var m *icmpMessage
 	if m, err = parseICMPMessage(b); err != nil {
-		return false, err
+		return false, 0, err
 	}
 
 	if m.Type != icmpv4EchoReply && m.Type != icmpv6EchoReply {
-		return false, errors.New("invalid reply type")
+		return false, 0, errors.New("invalid reply type")
 	}
 
 	switch p := m.Body.(type) {
 	case *icmpEcho:
 		if p.ID != xid {
 			fmt.Printf("err: id: %d, xid: %d\n", p.ID, xid)
-			return false, errors.New("invalid reply indentifier")
+			return false, 0, errors.New("invalid reply indentifier")
 		}
 		if p.Seq != xseq {
-			return false, errors.New("invalid reply sequence")
+			return false, 0, errors.New("invalid reply sequence")
 		}
-		return true, nil // UP!
+		return true, ms, nil // UP!
 	default:
-		return false, errors.New("invalid reply payload")
+		return false, 0, errors.New("invalid reply payload")
 	}
 }
 
