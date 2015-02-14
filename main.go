@@ -130,6 +130,7 @@ func PingHost(host string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 	d := dal.NewDAL()
+	d.CreateBuckets()
 
 	for {
 		tick := time.NewTicker(1 * time.Second)
