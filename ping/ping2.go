@@ -1,3 +1,29 @@
+/*
+This is not being used b/c the Golang implementation of ping
+varies a great deal more than the measurements parsed from
+shelling out to ping. I suspect it's b/c of GC pausing but
+I'll have to test some more to be sure.
+
+In the example below I'm pinging a server on the same subnet (over wifi).
+Note how the std dev and max pings vary so much more with Golang ping.
+
+2:10-2:30 : Golang based ping
+2:30-2:50 : Parsing the output of ping
+
+      TIME      | MIN  |  AVG  |  MAX   | STD DEV | RECEIVED |
++---------------+------+-------+--------+---------+----------+
+  02/14 02:10pm | 1 ms |  5 ms | 433 ms |   29 ms |      287 |
+  02/14 02:15pm | 1 ms |  5 ms | 286 ms |   22 ms |      300 |
+  02/14 02:20pm | 1 ms |  6 ms | 191 ms |   17 ms |      281 |
+  02/14 02:25pm | 1 ms |  5 ms | 151 ms |   12 ms |      299 |
+  02/14 02:30pm | 1 ms |  4 ms |  40 ms |    3 ms |      300 |
+  02/14 02:35pm | 1 ms |  4 ms |   6 ms |    1 ms |      300 |
+  02/14 02:40pm | 1 ms |  4 ms |   6 ms |    1 ms |      300 |
+  02/14 02:45pm | 1 ms |  4 ms |  87 ms |    5 ms |      300 |
+  02/14 02:50pm | 1 ms |  4 ms |  24 ms |    2 ms |      300 |
+*/
+
+// Based on pingg code
 // Based on https://github.com/golang/go/blob/master/src/net/ipraw_test.go#L95
 // Copyright 2009 The Go Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
