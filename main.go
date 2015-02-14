@@ -131,9 +131,9 @@ func PingHost(host string) {
 	signal.Notify(signalChan, os.Interrupt)
 	d := dal.NewDAL()
 	d.CreateBuckets()
+	tick := time.NewTicker(1 * time.Second)
 
 	for {
-		tick := time.NewTicker(1 * time.Second)
 		select {
 		case <-tick.C:
 			startTime := time.Now()
