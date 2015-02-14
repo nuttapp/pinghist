@@ -2,8 +2,6 @@ package ping
 
 import (
 	"errors"
-	"fmt"
-	"net"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -106,16 +104,7 @@ func Ping(hostOrIP string) (*PingResponse, error) {
 		return nil, err
 	}
 
-	// Lookup the hostname if we were provided an IP address
-	if ipRegex.MatchString(hostOrIP) {
-		hostname, err := net.LookupAddr(hostOrIP)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			pr.Host = hostname[0]
-		}
-	} else {
-		pr.Host = hostOrIP
-	}
+	pr.IP = hostOrIP
+	pr.Host = hostOrIP
 	return pr, nil
 }
