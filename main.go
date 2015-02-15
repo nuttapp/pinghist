@@ -95,21 +95,28 @@ func main() {
 		return
 	}
 
-	st, err := ParseTime(start)
-	if err != nil {
-		log.Fatal("Can't parse start time")
+	var st, et time.Time
+	if start == "" && end == "" && groupBy == "" {
+		st = time.Now().Add(-1 * time.Hour).Round(10 * time.Minute)
+		et = st.Add(1 * time.Hour)
+	} else {
+		var err error
+		st, err = ParseTime(start)
+		if err != nil {
+			log.Fatal("Can't parse start time")
+		}
+		et, err = ParseTime(end)
+		if err != nil {
+			log.Fatal("Can't parse end time")
+		}
 	}
-	et, err := ParseTime(end)
-	if err != nil {
-		log.Fatal("Can't parse end time")
+	if groupBy == "" {
+		groupBy = "10m"
 	}
 
 	d := dal.NewDAL()
 	d.CreateBuckets()
 
-	if groupBy == "" {
-		groupBy = "1m"
-	}
 	dur, err := time.ParseDuration(groupBy)
 	if err != nil {
 		log.Fatal("Can't parse groupby: " + err.Error())
