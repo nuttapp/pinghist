@@ -28,17 +28,19 @@ const (
 )
 
 type DAL struct {
-	path        string
-	fileName    string
+	path     string
+	fileName string
+	ipStatsBucket,
 	pingsBucket string
 }
 
 // NewDAL creates a new Data Access Layer with defaults for all fields
 func NewDAL() *DAL {
 	dal := &DAL{
-		path:        "",
-		fileName:    "pinghist.db",
-		pingsBucket: "pings_by_minute",
+		path:          "",
+		fileName:      "pinghist.db",
+		pingsBucket:   "pings_by_minute",
+		ipStatsBucket: "ip_stats",
 	}
 	return dal
 }
@@ -51,6 +53,7 @@ func (dal *DAL) CreateBuckets() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	boltBuckets := []string{dal.pingsBucket, dal.ipStatsBucket}
 
 	db.Update(func(tx *bolt.Tx) error {
 		// create buckets
