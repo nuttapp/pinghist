@@ -148,7 +148,7 @@ func PingHost(host string) {
 			if err != nil {
 				fmt.Println(err)
 			} else {
-				fmt.Printf("%s %.2f \n", pr.IP, pr.Time)
+				fmt.Printf("%.3f \n", pr.Time)
 				err := d.SavePing(pr.IP, startTime, float32(pr.Time))
 				if err != nil {
 					log.Fatal(err)
