@@ -111,7 +111,6 @@ func Test_dal_integration(t *testing.T) {
 		})
 
 		Convey("GetPings()", func() {
-			l := time.Now().Location()
 			ip := "127.0.0.1"
 			tfmt := "01/02/06 03:04:05 pm"
 
@@ -122,10 +121,8 @@ func Test_dal_integration(t *testing.T) {
 				seedTestDB(d, ip1, "01/03/15 04:00:00 pm", "01/03/15 04:02:00 pm")
 				seedTestDB(d, ip2, "01/03/15 04:00:00 pm", "01/03/15 04:01:00 pm")
 
-				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
-				endti, _ := time.ParseInLocation(tfmt, "01/04/15 04:07:00 pm", l)
-				start = start.UTC()
-				endti = endti.UTC()
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", time.UTC)
+				endti, _ := time.ParseInLocation(tfmt, "01/04/15 04:07:00 pm", time.UTC)
 				groupBy := 1 * time.Minute
 
 				groups, err := d.GetPings(ip1, start, endti, groupBy)
@@ -138,10 +135,8 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should return 24 groups, 1 hour in each group", func() {
 				seedTestDB(d, ip, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
 
-				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
-				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", l)
-				start = start.UTC()
-				endti = endti.UTC()
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", time.UTC)
+				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", time.UTC)
 				groupBy := 1 * time.Hour
 				// fmt.Printf("%s - %s\n", start.Format(tfmt), endti.Format(tfmt))
 
@@ -155,10 +150,8 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should return  4 groups, 15 minutes in each group", func() {
 				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
-				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", l)
-				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", l)
-				start = start.UTC()
-				endti = endti.UTC()
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", time.UTC)
+				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", time.UTC)
 				groupBy := 15 * time.Minute
 
 				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
@@ -171,10 +164,8 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should return 60 groups, 1 second in each group", func() {
 				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
 
-				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:02:00 pm", l)
-				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:03:00 pm", l)
-				start = start.UTC()
-				endti = endti.UTC()
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:02:00 pm", time.UTC)
+				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:03:00 pm", time.UTC)
 				groupBy := 1 * time.Second
 
 				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
@@ -186,10 +177,8 @@ func Test_dal_integration(t *testing.T) {
 			Convey("should return 30 groups, 1 second in each group", func() {
 				seedTestDB(d, ip, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
 
-				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
-				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
-				start = start.UTC()
-				endti = endti.UTC()
+				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", time.UTC)
+				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", time.UTC)
 				groupBy := 1 * time.Second
 
 				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
@@ -312,8 +301,8 @@ func Test_dal_integration(t *testing.T) {
 // 		// tfmt := "01/02/06 03:04:05 pm"
 // 		seedTestDB(d, "01/01/15 03:00:00 pm", "01/01/15 03:00:00 pm")
 //
-// 		// start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", l)
-// 		// endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", l)
+// 		// start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", time.UTC)
+// 		// endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", time.UTC)
 // 		// start = start.UTC()
 // 		// endti = endti.UTC()
 // 		// groupBy := 1 * time.Second
@@ -349,11 +338,11 @@ func seedTestDB(dal *DAL, ip, startTime, endTime string) {
 	maxRes, minRes := float32(1500.0), float32(5.0)
 	rand.Seed(time.Now().UnixNano())
 
-	l := time.Now().Location()
+	l, _ := time.LoadLocation("UTC")
 	start, _ := time.ParseInLocation(tfmt, startTime, l)
 	end, _ := time.ParseInLocation(tfmt, endTime, l)
-	start = start.UTC()
-	end = end.UTC()
+	// start = start.UTC()
+	// end = end.UTC()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
