@@ -108,3 +108,19 @@ func Ping(hostOrIP string) (*PingResponse, error) {
 	pr.Host = hostOrIP
 	return pr, nil
 }
+
+// Ping will run the ping command and send 1 ping packet to the given hostOrIP
+func PingNative(hostOrIP string) (*PingResponse, error) {
+	_, ms, err := Ping2(hostOrIP)
+	if err != nil {
+		return nil, err
+	}
+
+	pr := &PingResponse{
+		IP:   hostOrIP,
+		Host: hostOrIP,
+		Time: ms,
+	}
+
+	return pr, nil
+}
