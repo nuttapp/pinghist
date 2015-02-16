@@ -22,10 +22,6 @@ type IPStats struct {
 }
 
 func (dal *DAL) GetIPStats(ip string) (*IPStats, error) {
-	if len(ip) == 0 {
-		return nil, fmt.Errorf("dal.GetIPStats: %s", IPRequiredError)
-	}
-
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
 		return nil, err
@@ -34,27 +30,38 @@ func (dal *DAL) GetIPStats(ip string) (*IPStats, error) {
 
 	var ipStats *IPStats
 	err = db.View(func(tx *bolt.Tx) error {
-		statsbucket := tx.Bucket([]byte(dal.ipStatsBucket))
-		b := statsbucket.Get([]byte(ip))
-		if b == nil {
-			return nil
-		}
-		err := json.Unmarshal(b, &ipStats)
+		bucket := tx.Bucket([]byte(dal.ipStatsBucket))
+		ipStats, err = dal.GetIPStatsFromBucket(ip, bucket)
 		if err != nil {
-			return fmt.Errorf("dal.GetIPStats: %s: %s", IPStatsDerserializationError, err)
+			return err
 		}
 		return nil
 	})
 
 	return ipStats, err
+}
 
+func (dal *DAL) GetIPStatsFromBucket(ip string, bucket *bolt.Bucket) (*IPStats, error) {
+	if len(ip) == 0 {
+		return nil, fmt.Errorf("dal.GetIPStatsFromBucket: %s", IPRequiredError)
+	}
+	if bucket == nil {
+		return nil, fmt.Errorf("dal.GetIPStatsFromBucket: %s %s", BucketNotFoundError, dal.ipStatsBucket)
+	}
+
+	b := bucket.Get([]byte(ip))
+	if b == nil {
+		return nil, nil
+	}
+	var ipStats *IPStats
+	err := json.Unmarshal(b, &ipStats)
+	if err != nil {
+		return nil, fmt.Errorf("dal.GetIPStatsFromBucket: %s: %s", IPStatsDerserializationError, err)
+	}
+	return ipStats, nil
 }
 
 func (dal *DAL) SaveIPStats(stats *IPStats) error {
-	if len(stats.IP) == 0 {
-		return fmt.Errorf("dal.SaveIPStats: %s", IPRequiredError)
-	}
-
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
 		return err
