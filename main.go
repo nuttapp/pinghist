@@ -54,6 +54,7 @@ var (
 
 const (
 	timeFormat      = "01/02/2006 03:04 pm"
+	tableTimeFmt    = "01/02 03:04 pm"
 	timeShortformat = "03:04 pm"
 )
 
@@ -105,9 +106,6 @@ func main() {
 		ip = GetLastPingedIP()
 		st = time.Now().Add(-1 * time.Hour).Round(10 * time.Minute)
 		et = st.Add(1 * time.Hour)
-		fmt.Printf("Querying IP: %s\n", ip)
-		fmt.Printf("Start %s\n", st)
-		fmt.Printf("End   %s\n", et)
 	} else {
 		var err error
 		st, err = ParseTime(start)
@@ -127,9 +125,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Can't parse groupby: " + err.Error())
 	}
-	// fmt.Printf("st:  %s\n", st)
-	// fmt.Printf("ed:  %s\n", et)
-	// fmt.Printf("dur: %s\n", dur)
+
+	fmt.Printf("\nResults for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
 
 	groups, err := d.GetPings(ip, st, et, dur)
 	if err != nil {
@@ -220,7 +217,7 @@ func WriteTable(groups []*dal.PingGroup) {
 
 	for _, g := range groups {
 		row := []string{
-			fmt.Sprintf("%s", g.Start.In(time.Local).Format("01/02 03:04pm")),
+			fmt.Sprintf("%s", g.Start.In(time.Local).Format(tableTimeFmt)),
 			fmt.Sprintf("%.0f ms", g.MinTime),
 			fmt.Sprintf("%.0f ms", g.AvgTime),
 			fmt.Sprintf("%.0f ms", g.MaxTime),
