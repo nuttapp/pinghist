@@ -117,7 +117,35 @@ func (dal *DAL) SavePing(ip string, startTime time.Time, responseTime float32) e
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		return dal.SavePingWithTransaction(ip, startTime, responseTime, tx)
+		statsBucket := tx.Bucket([]byte(dal.ipStatsBucket))
+		// update the stats for this IP
+		stats, err := dal.GetIPStatsFromBucket(ip, statsBucket)
+		if err != nil {
+			return err
+		}
+
+		pingKey := string(GetPingKey(ip, startTime))
+		if stats == nil {
+			stats = &IPStats{
+				IP:           ip,
+				FirstPingKey: pingKey,
+				LastPingKey:  pingKey,
+			}
+		} else {
+			stats.LastPingKey = pingKey
+		}
+
+		err = dal.SaveIPStatsInBucket(stats, statsBucket)
+		if err != nil {
+			return err
+		}
+
+		err = dal.SavePingWithTransaction(ip, startTime, responseTime, tx)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	})
 
 	return err
