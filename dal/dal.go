@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -17,6 +16,7 @@ const (
 	// Bolt errors
 	BucketNotFoundError = "could not find bucket"
 	KeyNotFoundError    = "could not find key"
+	InvalidKeyError     = "Could not parse key"
 	// SavePing Errors
 	IPRequiredError             = "IP can't be empty string"
 	ResponseTimeOutOfRangeError = "Response time must be >= -1"
@@ -162,6 +162,20 @@ func GetPingKey(ip string, pingStartTime time.Time) []byte {
 	return []byte(key)
 }
 
+func ParsePingKey(key []byte) (ip string, baseTime time.Time, err error) {
+	fmt.Printf("key: %s\n", string(key))
+	keyParts := bytes.Split(key, []byte("_"))
+	if len(keyParts) != 2 {
+		return "", time.Time{}, fmt.Errorf("ParsePingKey(): %s", InvalidKeyError)
+	}
+	ip = string(keyParts[0])
+	baseTime, err = time.Parse(time.RFC3339, string(keyParts[1]))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return ip, baseTime, nil
+}
+
 const (
 	PingResByteCount          = 7 // total bytes = time bytes + 1 + float32 bytes + 1
 	PingResTimestampByteCount = 1 // time.Time.Second()
@@ -245,8 +259,7 @@ func (dal *DAL) GetPings(ipAddress string, start, end time.Time, groupBy time.Du
 		// fmt.Printf("max     : %s \n", max)
 
 		for k, v := c.Seek(min); k != nil && bytes.HasPrefix(k, pre) && bytes.Compare(k, max) >= -1; k, v = c.Next() {
-			keyParts := strings.Split(string(k), "_")
-			baseTime, err := time.Parse(time.RFC3339, keyParts[1])
+			_, baseTime, err := ParsePingKey(k)
 			// fmt.Printf("baseTime: %s\n", baseTime.Format(time.RFC3339Nano))
 			if err != nil {
 				return fmt.Errorf("dal.GetPings: %s: %s", KeyTimestampParsingError, err)
