@@ -325,6 +325,7 @@ func Float32bytes(float float32) []byte {
 	return bytes
 }
 
+// Generic method to Put a key into bolt. Used for testing
 func (dal *DAL) Put(key string, val []byte, bucket string) {
 	db, _ := bolt.Open(dal.fileName, 0600, nil)
 	defer db.Close()
@@ -334,6 +335,7 @@ func (dal *DAL) Put(key string, val []byte, bucket string) {
 	})
 }
 
+// Generic method to Get a key from bolt. Used for testing
 func (dal *DAL) Get(key string, bucket string) []byte {
 	db, _ := bolt.Open(dal.fileName, 0600, nil)
 	defer db.Close()
