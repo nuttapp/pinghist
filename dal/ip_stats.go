@@ -10,6 +10,7 @@ import "fmt"
 const (
 	IPStatsSerializationError    = "Could not serialize IPStats"
 	IPStatsDerserializationError = "Could not deserialize IPStats"
+	IPStatsRequiredError         = "IPStats cannot be nil"
 )
 
 // IPStats keep track of useful summary info about a particular IP address
@@ -77,6 +78,9 @@ func (dal *DAL) SaveIPStats(stats *IPStats) error {
 }
 
 func (dal *DAL) SaveIPStatsInBucket(stats *IPStats, bucket *bolt.Bucket) error {
+	if stats == nil {
+		return fmt.Errorf("dal.SaveIPStatsInBucket: %s", IPStatsRequiredError)
+	}
 	if len(stats.IP) == 0 {
 		return fmt.Errorf("dal.SaveIPStatsInBucket: %s", IPRequiredError)
 	}
