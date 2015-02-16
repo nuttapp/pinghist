@@ -80,6 +80,9 @@ func (dal *DAL) SaveIPStatsInBucket(stats *IPStats, bucket *bolt.Bucket) error {
 	if len(stats.IP) == 0 {
 		return fmt.Errorf("dal.SaveIPStatsInBucket: %s", IPRequiredError)
 	}
+	if bucket == nil {
+		return fmt.Errorf("dal.SaveIPStatsInBucket: %s %s", BucketNotFoundError, dal.ipStatsBucket)
+	}
 
 	b, err := json.Marshal(stats)
 	if err != nil {
