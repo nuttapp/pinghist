@@ -102,11 +102,7 @@ func main() {
 
 	var st, et time.Time
 	if start == "" && end == "" && groupBy == "" {
-		allIPStats, err := d.GetAllIPStats()
-		if err != nil {
-			log.Fatal(err)
-		}
-		ip = allIPStats[len(allIPStats)-1].IP
+		ip = GetLastPingedIP()
 		st = time.Now().Add(-1 * time.Hour).Round(10 * time.Minute)
 		et = st.Add(1 * time.Hour)
 		fmt.Printf("Querying IP: %s\n", ip)
