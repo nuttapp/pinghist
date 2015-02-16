@@ -35,6 +35,18 @@ func Test_ip_stats_integration(t *testing.T) {
 				err := dal.SaveIPStats(stats)
 				So(err, ShouldNotBeNil)
 			})
+			Convey("should return error when bucket doesn't exist", func() {
+				dal.DeleteBuckets()
+				err := dal.SaveIPStats(stats)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
+			})
+			Convey("should return error when given nil stats", func() {
+				dal.DeleteBuckets()
+				err := dal.SaveIPStats(nil)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, IPStatsRequiredError)
+			})
 		})
 
 		Convey("GetIPStats()", func() {
@@ -72,6 +84,12 @@ func Test_ip_stats_integration(t *testing.T) {
 				dal.fileName = ""
 				_, err := dal.GetIPStats(stats.IP)
 				So(err, ShouldNotBeNil)
+			})
+			Convey("should return error when bucket doesn't exist", func() {
+				dal.DeleteBuckets()
+				_, err := dal.GetIPStats(stats.IP)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
 			})
 			Convey("should return error when it can't deserialize IPStats", func() {
 				dal.Put(stats.IP, []byte("bogus data"), dal.ipStatsBucket)
