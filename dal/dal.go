@@ -127,12 +127,15 @@ func (dal *DAL) SavePing(ip string, startTime time.Time, responseTime float32) e
 		pingKey := string(GetPingKey(ip, startTime))
 		if stats == nil {
 			stats = &IPStats{
-				IP:           ip,
-				FirstPingKey: pingKey,
-				LastPingKey:  pingKey,
+				IP:            ip,
+				FirstPingKey:  pingKey,
+				FirstPingTime: startTime,
+				LastPingKey:   pingKey,
+				LastPingTime:  startTime,
 			}
 		} else {
 			stats.LastPingKey = pingKey
+			stats.LastPingTime = startTime
 		}
 
 		err = dal.SaveIPStatsInBucket(stats, statsBucket)
@@ -163,7 +166,6 @@ func GetPingKey(ip string, pingStartTime time.Time) []byte {
 }
 
 func ParsePingKey(key []byte) (ip string, baseTime time.Time, err error) {
-	fmt.Printf("key: %s\n", string(key))
 	keyParts := bytes.Split(key, []byte("_"))
 	if len(keyParts) != 2 {
 		return "", time.Time{}, fmt.Errorf("ParsePingKey(): %s", InvalidKeyError)
