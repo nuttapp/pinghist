@@ -18,7 +18,7 @@ const (
 	BucketNotFoundError = "could not find bucket"
 	KeyNotFoundError    = "could not find key"
 	// SavePing Errors
-	IPRequiredError             = "IP can't be empty"
+	IPRequiredError             = "IP can't be empty string"
 	ResponseTimeOutOfRangeError = "Response time must be >= -1"
 	// Deserialize PingRes Errors
 	TimeDeserializationError = "second offset is too large (> 59)"
