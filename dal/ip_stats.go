@@ -15,11 +15,13 @@ const (
 
 // IPStats keep track of useful summary info about a particular IP address
 type IPStats struct {
-	IP           string // The ip address
-	FirstPingKey string // first key of pings_by_minute bucket
-	LastPingKey  string // last key ...
-	Received     uint64
-	Lost         uint64
+	IP            string // The ip address
+	FirstPingKey  string // first key of pings_by_minute bucket
+	FirstPingTime string // The timestamp of the first ping attempt
+	LastPingKey   string // last key ...
+	LastPingTime  string // The timestamp of the last ping attempt
+	Received      uint64
+	Lost          uint64
 }
 
 func (dal *DAL) GetIPStats(ip string) (*IPStats, error) {
