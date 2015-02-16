@@ -62,8 +62,7 @@ func Test_dal_integration(t *testing.T) {
 
 		Convey("SavePing()", func() {
 			ip := "127.0.0.1"
-			l, _ := time.LoadLocation("UTC")
-			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, l) // 2015-01-01 12:30:00 +0000 UTC
+			startTime := time.Date(2015, time.January, 1, 12, 30, 0, 0, time.UTC) // 2015-01-01 12:30:00 +0000 UTC
 			responseTime := float32(1.1)
 
 			Convey("should create 1 key w/ 1 ping", func() {
@@ -339,9 +338,8 @@ func seedTestDB(dal *DAL, ip, startTime, endTime string) {
 	maxRes, minRes := float32(1500.0), float32(5.0)
 	rand.Seed(time.Now().UnixNano())
 
-	l, _ := time.LoadLocation("UTC")
-	start, _ := time.ParseInLocation(tfmt, startTime, l)
-	end, _ := time.ParseInLocation(tfmt, endTime, l)
+	start, _ := time.ParseInLocation(tfmt, startTime, time.UTC)
+	end, _ := time.ParseInLocation(tfmt, endTime, time.UTC)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
