@@ -126,7 +126,7 @@ func main() {
 		log.Fatal("Can't parse groupby: " + err.Error())
 	}
 
-	fmt.Printf("\nResults for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
+	fmt.Printf("Results for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
 
 	groups, err := d.GetPings(ip, st, et, dur)
 	if err != nil {
