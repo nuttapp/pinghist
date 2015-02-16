@@ -45,7 +45,9 @@ func NewDAL() *DAL {
 	return dal
 }
 
-var boltBuckets = []string{"pings_by_minute"}
+func (dal *DAL) Buckets() []string {
+	return []string{dal.pingsBucket, dal.ipStatsBucket}
+}
 
 func (dal *DAL) CreateBuckets() {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
