@@ -342,8 +342,6 @@ func seedTestDB(dal *DAL, ip, startTime, endTime string) {
 	l, _ := time.LoadLocation("UTC")
 	start, _ := time.ParseInLocation(tfmt, startTime, l)
 	end, _ := time.ParseInLocation(tfmt, endTime, l)
-	// start = start.UTC()
-	// end = end.UTC()
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		// pt == ping timestamp
