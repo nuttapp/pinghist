@@ -103,23 +103,33 @@ func Test_dal_integration(t *testing.T) {
 				val := dal.Get(ip, dal.ipStatsBucket)
 				So(val, ShouldNotBeNil)
 			})
-			Convey("should update LastPingKey of IPStats for the given IP", func() {
+			Convey("should update IPStats for the given IP", func() {
 				err := dal.SavePing(ip, startTime, 1.0)
 				So(err, ShouldBeNil)
 
+				// Get IPStats for the ip
 				ipStats, err := dal.GetIPStats(ip)
 				So(err, ShouldBeNil)
 				So(ipStats, ShouldNotBeNil)
 				pingKey := string(GetPingKey(ip, startTime))
 				So(ipStats.FirstPingKey, ShouldEqual, pingKey)
+				So(ipStats.FirstPingTime, ShouldHappenOnOrAfter, startTime)
 				So(ipStats.LastPingKey, ShouldEqual, pingKey)
+				So(ipStats.LastPingTime, ShouldHappenOnOrAfter, startTime)
 
 				startTime2 := startTime.Add(1 * time.Second)
-				err = dal.SavePing(ip, startTime2, 1.0)
+				err = dal.SavePing(ip, startTime2, 2.0)
+
+				// Get IPStats agai, the LastPingTime and LastPingKey should be updated
+				ipStats, err = dal.GetIPStats(ip)
 				So(err, ShouldBeNil)
+				So(ipStats, ShouldNotBeNil)
+
 				So(ipStats.FirstPingKey, ShouldEqual, pingKey)
+				So(ipStats.FirstPingTime, ShouldHappenOnOrAfter, startTime)
 				newLastPingKey := string(GetPingKey(ip, startTime2))
 				So(ipStats.LastPingKey, ShouldEqual, newLastPingKey)
+				So(ipStats.LastPingTime, ShouldHappenOnOrAfter, startTime2)
 			})
 			Convey("should return error w/ blank IP", func() {
 				err := dal.SavePing("", time.Now(), 0)
