@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
 	"time"
 
 	"github.com/nuttapp/pinghist/dal"
@@ -14,6 +15,7 @@ import (
 )
 
 var (
+	d                *dal.DAL
 	host             string
 	showExamples     bool
 	start            string
@@ -56,6 +58,9 @@ const (
 )
 
 func init() {
+	d = dal.NewDAL()
+	d.CreateBuckets()
+
 	const (
 		hostUsage         = "The host IP or hostname to ping"
 		ipUsage           = "The ip to query"
@@ -97,8 +102,16 @@ func main() {
 
 	var st, et time.Time
 	if start == "" && end == "" && groupBy == "" {
+		allIPStats, err := d.GetAllIPStats()
+		if err != nil {
+			log.Fatal(err)
+		}
+		ip = allIPStats[len(allIPStats)-1].IP
 		st = time.Now().Add(-1 * time.Hour).Round(10 * time.Minute)
 		et = st.Add(1 * time.Hour)
+		fmt.Printf("Querying IP: %s\n", ip)
+		fmt.Printf("Start %s\n", st)
+		fmt.Printf("End   %s\n", et)
 	} else {
 		var err error
 		st, err = ParseTime(start)
@@ -113,9 +126,6 @@ func main() {
 	if groupBy == "" {
 		groupBy = "10m"
 	}
-
-	d := dal.NewDAL()
-	d.CreateBuckets()
 
 	dur, err := time.ParseDuration(groupBy)
 	if err != nil {
@@ -185,6 +195,16 @@ func ParseTime(str string) (time.Time, error) {
 	}
 
 	return t, err
+}
+
+func GetLastPingedIP() string {
+	allIPStats, err := d.GetAllIPStats()
+	if err != nil {
+		log.Fatal(err)
+	}
+	sort.Stable(dal.ByLastPingTime(allIPStats))
+	ip = allIPStats[len(allIPStats)-1].IP
+	return ip
 }
 
 func WriteTable(groups []*dal.PingGroup) {
