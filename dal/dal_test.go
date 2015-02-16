@@ -51,11 +51,11 @@ func Test_dal_unit(t *testing.T) {
 
 func Test_dal_integration(t *testing.T) {
 	Convey("DAL", t, func() {
-		d := NewDAL()
-		d.DeleteBuckets()
-		d.CreateBuckets()
+		dal := NewDAL()
+		dal.DeleteBuckets()
+		dal.CreateBuckets()
 		Reset(func() {
-			os.Remove(d.fileName)
+			os.Remove(dal.fileName)
 		})
 
 		Convey("SavePing()", func() {
@@ -65,43 +65,43 @@ func Test_dal_integration(t *testing.T) {
 			responseTime := float32(1.1)
 
 			Convey("should create 1 key w/ 1 ping", func() {
-				err := d.SavePing(ip, startTime, responseTime)
+				err := dal.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys(d)
+				keys := getAllPingKeys(dal)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
 			Convey("should create 1 key when 2 pings are < 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Second) // add a second
 
-				err := d.SavePing(ip, startTime, responseTime)
+				err := dal.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				err = d.SavePing(ip, startTime2, responseTime)
+				err = dal.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys(d)
+				keys := getAllPingKeys(dal)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 			})
 			Convey("should create 2 keys when 2 pings are > 1 minute apart", func() {
 				startTime2 := startTime.Add(1 * time.Minute) // add a minute
 
-				err := d.SavePing(ip, startTime, responseTime)
+				err := dal.SavePing(ip, startTime, responseTime)
 				So(err, ShouldBeNil)
 
-				err = d.SavePing(ip, startTime2, responseTime)
+				err = dal.SavePing(ip, startTime2, responseTime)
 				So(err, ShouldBeNil)
 
-				keys := getAllPingKeys(d)
+				keys := getAllPingKeys(dal)
 				So(keys[0], ShouldEqual, string(GetPingKey(ip, startTime)))
 				So(keys[1], ShouldEqual, string(GetPingKey(ip, startTime2)))
 			})
 			Convey("should return error w/ blank IP", func() {
-				err := d.SavePing("", time.Now(), 0)
+				err := dal.SavePing("", time.Now(), 0)
 				So(err.Error(), ShouldContainSubstring, IPRequiredError)
 			})
 			Convey("should return error w/ response time < -1", func() {
-				err := d.SavePing(ip, time.Now(), -2.0)
+				err := dal.SavePing(ip, time.Now(), -2.0)
 				So(err.Error(), ShouldContainSubstring, ResponseTimeOutOfRangeError)
 			})
 			Convey("should return error when opening invalid db", func() {
@@ -118,14 +118,14 @@ func Test_dal_integration(t *testing.T) {
 			Convey("Should seed db with differnt IPs and not return other IPs", func() {
 				ip1 := ip
 				ip2 := "167.206.245.222"
-				seedTestDB(d, ip1, "01/03/15 04:00:00 pm", "01/03/15 04:02:00 pm")
-				seedTestDB(d, ip2, "01/03/15 04:00:00 pm", "01/03/15 04:01:00 pm")
+				seedTestDB(dal, ip1, "01/03/15 04:00:00 pm", "01/03/15 04:02:00 pm")
+				seedTestDB(dal, ip2, "01/03/15 04:00:00 pm", "01/03/15 04:01:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", time.UTC)
 				endti, _ := time.ParseInLocation(tfmt, "01/04/15 04:07:00 pm", time.UTC)
 				groupBy := 1 * time.Minute
 
-				groups, err := d.GetPings(ip1, start, endti, groupBy)
+				groups, err := dal.GetPings(ip1, start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(groups, ShouldNotBeNil)
 				// before this fix it would return 4 groups
@@ -133,14 +133,14 @@ func Test_dal_integration(t *testing.T) {
 			})
 
 			Convey("should return 24 groups, 1 hour in each group", func() {
-				seedTestDB(d, ip, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
+				seedTestDB(dal, ip, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", time.UTC)
 				endti, _ := time.ParseInLocation(tfmt, "01/04/15 05:00:00 pm", time.UTC)
 				groupBy := 1 * time.Hour
 				// fmt.Printf("%s - %s\n", start.Format(tfmt), endti.Format(tfmt))
 
-				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := dal.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 24)            // there should be 1 group per hour
 				So(sumReceived(groups), ShouldEqual, 86400) // there should 1 ping for every second in a day
@@ -148,13 +148,13 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return  4 groups, 15 minutes in each group", func() {
-				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
+				seedTestDB(dal, ip, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 04:00:00 pm", time.UTC)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 05:00:00 pm", time.UTC)
 				groupBy := 15 * time.Minute
 
-				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := dal.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 4)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
@@ -162,26 +162,26 @@ func Test_dal_integration(t *testing.T) {
 				So(sumReceived(groups), ShouldEqual, 3600)
 			})
 			Convey("should return 60 groups, 1 second in each group", func() {
-				seedTestDB(d, ip, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
+				seedTestDB(dal, ip, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:02:00 pm", time.UTC)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:03:00 pm", time.UTC)
 				groupBy := 1 * time.Second
 
-				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := dal.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(sumReceived(groups), ShouldEqual, 60)
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return 30 groups, 1 second in each group", func() {
-				seedTestDB(d, ip, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
+				seedTestDB(dal, ip, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
 
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", time.UTC)
 				endti, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:30 pm", time.UTC)
 				groupBy := 1 * time.Second
 
-				groups, err := d.GetPings("127.0.0.1", start, endti, groupBy)
+				groups, err := dal.GetPings("127.0.0.1", start, endti, groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 30)
 				So(sumReceived(groups), ShouldEqual, 30)
@@ -189,33 +189,33 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
 			Convey("should return error when it can't find bucket", func() {
-				db, err := bolt.Open(d.fileName, 0600, nil)
+				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				err = db.Update(func(tx *bolt.Tx) error {
-					for _, name := range d.Buckets() {
+					for _, name := range dal.Buckets() {
 						tx.DeleteBucket([]byte(name))
 					}
 					return nil
 				})
 				db.Close()
-				_, err = d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
+				_, err = dal.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
 			})
 			Convey("should return error when it can't open db ", func() {
-				d.fileName = ""
-				_, err := d.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
+				dal.fileName = ""
+				_, err := dal.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
 			})
 			Convey("should return error when it deserialize key timestamp", func() {
 				ip := "127.0.0.1"
 				startTime := time.Now()
 
-				db, err := bolt.Open(d.fileName, 0600, nil)
+				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				// add a garbage value to our pings bucket manually
 				err = db.Update(func(tx *bolt.Tx) error {
-					pings, err := tx.CreateBucketIfNotExists([]byte(d.pingsBucket))
+					pings, err := tx.CreateBucketIfNotExists([]byte(dal.pingsBucket))
 					So(err, ShouldBeNil)
 					key := GetPingKey(ip, startTime)
 					key = append(key, []byte("break-the-RFC3399-timestamp")...)
@@ -224,7 +224,7 @@ func Test_dal_integration(t *testing.T) {
 				db.Close()
 
 				So(err, ShouldBeNil)
-				groups, err := d.GetPings(ip, startTime, startTime, 1*time.Second)
+				groups, err := dal.GetPings(ip, startTime, startTime, 1*time.Second)
 				So(groups, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, KeyTimestampParsingError)
@@ -233,11 +233,11 @@ func Test_dal_integration(t *testing.T) {
 				ip := "127.0.0.1"
 				startTime := time.Now()
 
-				db, err := bolt.Open(d.fileName, 0600, nil)
+				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				// add a garbage value to our pings bucket manually
 				err = db.Update(func(tx *bolt.Tx) error {
-					pings, err := tx.CreateBucketIfNotExists([]byte(d.pingsBucket))
+					pings, err := tx.CreateBucketIfNotExists([]byte(dal.pingsBucket))
 					So(err, ShouldBeNil)
 					key := GetPingKey(ip, startTime)
 					val := make([]byte, 25)
@@ -247,7 +247,7 @@ func Test_dal_integration(t *testing.T) {
 				db.Close()
 				So(err, ShouldBeNil)
 
-				groups, err := d.GetPings(ip, startTime, startTime, 1*time.Second)
+				groups, err := dal.GetPings(ip, startTime, startTime, 1*time.Second)
 				So(groups, ShouldBeNil)
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, TimeDeserializationError)
@@ -256,23 +256,23 @@ func Test_dal_integration(t *testing.T) {
 
 		Convey("SavePingWithTransaction()", func() {
 			Convey("should return error when key is too large", func() {
-				db, err := bolt.Open(d.fileName, 0600, nil)
+				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				defer db.Close()
 				err = db.Update(func(tx *bolt.Tx) error {
 					b := make([]byte, 130000)
 					largeKey := string(b)
-					return d.SavePingWithTransaction(largeKey, time.Time{}, 1.0, tx)
+					return dal.SavePingWithTransaction(largeKey, time.Time{}, 1.0, tx)
 				})
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, "key too large")
 			})
 			Convey("should return error when it can't find bucket", func() {
-				db, err := bolt.Open(d.fileName, 0600, nil)
+				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				defer db.Close()
 				err = db.Update(func(tx *bolt.Tx) error {
-					for _, name := range d.Buckets() {
+					for _, name := range dal.Buckets() {
 						tx.DeleteBucket([]byte(name))
 					}
 					return nil
@@ -280,7 +280,7 @@ func Test_dal_integration(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				err = db.Update(func(tx *bolt.Tx) error {
-					return d.SavePingWithTransaction("", time.Time{}, 1.0, tx)
+					return dal.SavePingWithTransaction("", time.Time{}, 1.0, tx)
 				})
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
