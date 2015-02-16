@@ -106,5 +106,25 @@ func Test_ip_stats_integration(t *testing.T) {
 				So(err.Error(), ShouldContainSubstring, IPStatsDerserializationError)
 			})
 		})
+
+		Convey("GetAllIPStats()", func() {
+			Convey("should insert 3 and return 3 IPSstats", func() {
+				// save 3 stats
+				err := dal.SaveIPStats(stats)
+				So(err, ShouldBeNil)
+				stats.IP = "192.168.1.1"
+				err = dal.SaveIPStats(stats)
+				So(err, ShouldBeNil)
+				stats.IP = "192.168.1.2"
+				err = dal.SaveIPStats(stats)
+				So(err, ShouldBeNil)
+
+				allStats, err := dal.GetAllIPStats()
+				So(err, ShouldBeNil)
+				So(allStats, ShouldNotBeNil)
+				So(len(allStats), ShouldEqual, 3)
+			})
+		})
+
 	})
 }

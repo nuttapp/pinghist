@@ -25,6 +25,32 @@ type IPStats struct {
 	Lost          uint64
 }
 
+func (dal *DAL) GetAllIPStats() ([]*IPStats, error) {
+	db, err := bolt.Open(dal.fileName, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	allStats := []*IPStats{}
+	err = db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(dal.ipStatsBucket))
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var s IPStats
+			err := json.Unmarshal(v, &s)
+			if err != nil {
+				return nil
+			}
+			allStats = append(allStats, &s)
+		}
+		return nil
+	})
+
+	return allStats, err
+}
+
 func (dal *DAL) GetIPStats(ip string) (*IPStats, error) {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
