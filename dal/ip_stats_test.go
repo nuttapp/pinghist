@@ -11,7 +11,7 @@ func Test_ip_stats_integration(t *testing.T) {
 		dal := NewDAL()
 		dal.CreateBuckets()
 
-		stats := IPStats{
+		stats := &IPStats{
 			IP:           "127.0.0.1",
 			FirstPingKey: "foo",
 			LastPingKey:  "bar",
@@ -57,6 +57,11 @@ func Test_ip_stats_integration(t *testing.T) {
 				sUpdated, err := dal.GetIPStats(sSaved.IP)
 				So(err, ShouldBeNil)
 				So(sUpdated.Received, ShouldEqual, sSaved.Received)
+			})
+			Convey("should return nil when key doesn't exist", func() {
+				sSaved, err := dal.GetIPStats("this key wont exist")
+				So(err, ShouldBeNil)
+				So(sSaved, ShouldBeNil)
 			})
 			Convey("should return error with invalid IP", func() {
 				_, err := dal.GetIPStats("")
