@@ -192,7 +192,7 @@ func Test_dal_integration(t *testing.T) {
 				db, err := bolt.Open(d.fileName, 0600, nil)
 				So(err, ShouldBeNil)
 				err = db.Update(func(tx *bolt.Tx) error {
-					for _, name := range boltBuckets {
+					for _, name := range d.Buckets() {
 						tx.DeleteBucket([]byte(name))
 					}
 					return nil
@@ -272,7 +272,7 @@ func Test_dal_integration(t *testing.T) {
 				So(err, ShouldBeNil)
 				defer db.Close()
 				err = db.Update(func(tx *bolt.Tx) error {
-					for _, name := range boltBuckets {
+					for _, name := range d.Buckets() {
 						tx.DeleteBucket([]byte(name))
 					}
 					return nil
@@ -428,7 +428,7 @@ func resetTestDB(dal *DAL) {
 
 	db.Update(func(tx *bolt.Tx) error {
 		// create buckets
-		for _, name := range boltBuckets {
+		for _, name := range dal.Buckets() {
 			tx.DeleteBucket([]byte(name))
 		}
 
@@ -437,7 +437,7 @@ func resetTestDB(dal *DAL) {
 
 	db.Update(func(tx *bolt.Tx) error {
 		// create buckets
-		for _, bucketName := range boltBuckets {
+		for _, bucketName := range dal.Buckets() {
 			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
