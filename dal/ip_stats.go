@@ -2,6 +2,7 @@ package dal
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/boltdb/bolt"
 )
@@ -15,11 +16,11 @@ const (
 
 // IPStats keep track of useful summary info about a particular IP address
 type IPStats struct {
-	IP            string // The ip address
-	FirstPingKey  string // first key of pings_by_minute bucket
-	FirstPingTime string // The timestamp of the first ping attempt
-	LastPingKey   string // last key ...
-	LastPingTime  string // The timestamp of the last ping attempt
+	IP            string    // The ip address
+	FirstPingKey  string    // first key of pings_by_minute bucket
+	FirstPingTime time.Time // The timestamp of the first ping attempt
+	LastPingKey   string    // last key ...
+	LastPingTime  time.Time // The timestamp of the last ping attempt
 	Received      uint64
 	Lost          uint64
 }
