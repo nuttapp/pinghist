@@ -77,6 +77,10 @@ func (dal *DAL) SaveIPStats(stats *IPStats) error {
 }
 
 func (dal *DAL) SaveIPStatsInBucket(stats *IPStats, bucket *bolt.Bucket) error {
+	if len(stats.IP) == 0 {
+		return fmt.Errorf("dal.SaveIPStats: %s", IPRequiredError)
+	}
+
 	b, err := json.Marshal(stats)
 	if err != nil {
 		return fmt.Errorf("dal.SaveIPStats: %s: %s", IPStatsSerializationError, err)
