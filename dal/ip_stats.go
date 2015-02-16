@@ -25,6 +25,12 @@ type IPStats struct {
 	Lost          uint64
 }
 
+type ByLastPingTime []*IPStats
+
+func (a ByLastPingTime) Len() int           { return len(a) }
+func (a ByLastPingTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByLastPingTime) Less(i, j int) bool { return a[i].LastPingTime.Before(a[j].LastPingTime) }
+
 func (dal *DAL) GetAllIPStats() ([]*IPStats, error) {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {

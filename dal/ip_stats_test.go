@@ -2,11 +2,30 @@ package dal
 
 import (
 	"os"
+	"sort"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+func Test_ip_stats_unit(t *testing.T) {
+	Convey("[]*IPStats", t, func() {
+		Convey("should sort list in ascending order by LastPingTime", func() {
+			n := time.Now()
+			stats := []*IPStats{
+				&IPStats{IP: "3", LastPingTime: n.Add(15 * time.Second)},
+				&IPStats{IP: "1", LastPingTime: n.Add(1 * time.Second)},
+				&IPStats{IP: "2", LastPingTime: n.Add(10 * time.Second)},
+			}
+
+			sort.Stable(ByLastPingTime(stats))
+			So(stats[0].IP, ShouldEqual, "1")
+			So(stats[1].IP, ShouldEqual, "2")
+			So(stats[2].IP, ShouldEqual, "3")
+		})
+	})
+}
 
 func Test_ip_stats_integration(t *testing.T) {
 	Convey("IPStats", t, func() {
