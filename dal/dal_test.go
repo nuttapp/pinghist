@@ -51,6 +51,8 @@ func Test_dal_unit(t *testing.T) {
 
 func Test_dal_integration(t *testing.T) {
 	Convey("DAL", t, func() {
+		// These are run before every sub test below, so every test has a brand new dal and
+		// empty set of buckets
 		dal := NewDAL()
 		dal.DeleteBuckets()
 		dal.CreateBuckets()
