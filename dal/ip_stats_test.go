@@ -58,7 +58,7 @@ func Test_ip_stats_integration(t *testing.T) {
 		})
 
 		Convey("GetIPStats()", func() {
-			Convey("Should get & update IPStats", func() {
+			Convey("Should save & be able to update IPStats", func() {
 				err := dal.SaveIPStats(stats)
 				So(err, ShouldBeNil)
 				sSaved, err := dal.GetIPStats(stats.IP)
