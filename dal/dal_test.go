@@ -132,6 +132,7 @@ func Test_dal_integration(t *testing.T) {
 				// before this fix it would return 4 groups
 				So(len(groups), ShouldEqual, 2)
 			})
+
 			Convey("should return 24 groups, 1 hour in each group", func() {
 				seedTestDB(dal, ip, "01/03/15 04:00:00 pm", "01/04/15 06:00:00 pm")
 
