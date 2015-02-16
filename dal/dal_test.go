@@ -52,7 +52,8 @@ func Test_dal_unit(t *testing.T) {
 func Test_dal_integration(t *testing.T) {
 	Convey("DAL", t, func() {
 		d := NewDAL()
-		resetTestDB(d) // run before every Convey below
+		d.DeleteBuckets()
+		d.CreateBuckets()
 		Reset(func() {
 			os.Remove(d.fileName)
 		})
@@ -115,7 +116,6 @@ func Test_dal_integration(t *testing.T) {
 			tfmt := "01/02/06 03:04:05 pm"
 
 			Convey("Should seed db with differnt IPs and not return other IPs", func() {
-				resetTestDB(d) // run before every Convey below
 				ip1 := ip
 				ip2 := "167.206.245.222"
 				seedTestDB(d, ip1, "01/03/15 04:00:00 pm", "01/03/15 04:02:00 pm")
@@ -294,7 +294,6 @@ func Test_dal_integration(t *testing.T) {
 // Convey("seed", t, func() {
 // 	fmt.Println()
 // 	d := NewDAL()
-// 	resetTestDB(d)
 // 	Convey("should return 30 groups, 1 second in each group", func() {
 // 		// fmt.Println()
 // 		// l := time.Now().Location()
@@ -417,33 +416,4 @@ func writeTable(groups []*PingGroup) {
 		table.Append(row)
 	}
 	table.Render()
-}
-
-func resetTestDB(dal *DAL) {
-	db, err := bolt.Open(dal.fileName, 0600, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	db.Update(func(tx *bolt.Tx) error {
-		// create buckets
-		for _, name := range dal.Buckets() {
-			tx.DeleteBucket([]byte(name))
-		}
-
-		return nil
-	})
-
-	db.Update(func(tx *bolt.Tx) error {
-		// create buckets
-		for _, bucketName := range dal.Buckets() {
-			_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
-			}
-		}
-
-		return nil
-	})
 }
