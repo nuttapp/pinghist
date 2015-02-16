@@ -296,3 +296,12 @@ func Float32bytes(float float32) []byte {
 	binary.LittleEndian.PutUint32(bytes, bits)
 	return bytes
 }
+
+func (dal *DAL) Put(key string, val []byte, bucket string) {
+	db, _ := bolt.Open(dal.fileName, 0600, nil)
+	defer db.Close()
+	db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucket))
+		return bucket.Put([]byte(key), val)
+	})
+}
