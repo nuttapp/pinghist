@@ -306,6 +306,21 @@ func (dal *DAL) Put(key string, val []byte, bucket string) {
 	})
 }
 
+func (dal *DAL) Get(key string, bucket string) []byte {
+	db, _ := bolt.Open(dal.fileName, 0600, nil)
+	defer db.Close()
+	var returnB []byte
+	db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucket))
+		b := bucket.Get([]byte(key))
+		returnB = make([]byte, 0, len(b))
+		returnB = append(returnB, b...)
+		return nil
+	})
+
+	return returnB
+}
+
 func (dal *DAL) DeleteBuckets() {
 	db, err := bolt.Open(dal.fileName, 0600, nil)
 	if err != nil {
