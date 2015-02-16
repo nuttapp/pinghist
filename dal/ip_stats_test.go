@@ -1,6 +1,7 @@
 package dal
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -9,7 +10,11 @@ import (
 func Test_ip_stats_integration(t *testing.T) {
 	Convey("IPStats", t, func() {
 		dal := NewDAL()
+		dal.DeleteBuckets()
 		dal.CreateBuckets()
+		Reset(func() {
+			os.Remove(dal.fileName)
+		})
 
 		stats := &IPStats{
 			IP:           "127.0.0.1",
