@@ -3,6 +3,7 @@ package dal
 import (
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -16,10 +17,12 @@ func Test_ip_stats_integration(t *testing.T) {
 			os.Remove(dal.fileName)
 		})
 
+		now := time.Now().UTC()
+		ip := "127.0.0.1"
 		stats := &IPStats{
-			IP:           "127.0.0.1",
-			FirstPingKey: "foo",
-			LastPingKey:  "bar",
+			IP:           ip,
+			FirstPingKey: string(GetPingKey(ip, now)),
+			LastPingKey:  string(GetPingKey(ip, now)),
 			Received:     1,
 			Lost:         2,
 		}
