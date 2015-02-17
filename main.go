@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"sort"
@@ -104,8 +105,10 @@ func main() {
 	var st, et time.Time
 	if start == "" && end == "" && groupBy == "" {
 		ip = GetLastPingedIP()
-		st = time.Now().Add(-1 * time.Hour).Round(10 * time.Minute)
-		et = st.Add(1 * time.Hour)
+		t := time.Now().Add(-60 * time.Minute)
+		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the last digit of the minute
+		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
+		et = st.Add(60 * time.Minute)
 	} else {
 		var err error
 		st, err = ParseTime(start)
@@ -125,9 +128,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Can't parse groupby: " + err.Error())
 	}
-
-	fmt.Printf("Results for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
-
+	fmt.Printf("\nResults for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
 	groups, err := d.GetPings(ip, st, et, dur)
 	if err != nil {
 		log.Fatal("Couldn't retreive pings: %s", err)
