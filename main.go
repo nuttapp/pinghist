@@ -108,7 +108,7 @@ func main() {
 		t := time.Now().Add(-60 * time.Minute)
 		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the last digit of the minute
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
-		et = st.Add(60 * time.Minute)
+		et = time.Now()
 	} else {
 		var err error
 		st, err = ParseTime(start)
