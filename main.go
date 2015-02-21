@@ -142,8 +142,6 @@ func main() {
 func PingHost(host string) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
-	d := dal.NewDAL()
-	d.CreateBuckets()
 	tick := time.NewTicker(1 * time.Second)
 
 	for {
@@ -151,11 +149,16 @@ func PingHost(host string) {
 		case <-tick.C:
 			startTime := time.Now()
 			pr, err := ping.Ping(host)
-			// at the moment all errors are considered timeout errors
+
 			if err != nil {
 				if te, ok := err.(ping.TimeoutError); ok {
 					fmt.Println(err)
 					err = d.SavePing(te.IP(), startTime, -1)
+					if err != nil {
+						log.Fatal(err)
+					}
+				} else {
+					log.Fatal(err)
 				}
 			} else {
 				fmt.Printf("%.3f \n", pr.Time)
@@ -230,7 +233,7 @@ func WriteTable(groups []*dal.PingGroup) {
 			fmt.Sprintf("%.0f ms", g.MaxTime),
 			fmt.Sprintf("%.0f ms", g.StdDev),
 			fmt.Sprintf("%d", g.Received),
-			"0",
+			fmt.Sprintf("%d", g.Timedout),
 		}
 		table.Append(row)
 	}
