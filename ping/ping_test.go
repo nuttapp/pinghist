@@ -105,7 +105,7 @@ func Test_ping_integration(t *testing.T) {
 				So(pr, ShouldNotBeNil)
 			})
 			Convey("Should ping 127.0.0.1", func() {
-				pr, err := Ping("localhost")
+				pr, err := Ping("127.0.0.1")
 				// So(pr.Host, ShouldEqual, "localhost")
 				// So(pr.IP, ShouldEqual, "localhost")
 				So(err, ShouldBeNil)
