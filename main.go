@@ -106,9 +106,11 @@ func main() {
 	if start == "" && end == "" && groupBy == "" {
 		ip = GetLastPingedIP()
 		t := time.Now().Add(-60 * time.Minute)
-		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the last digit of the minute
+		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the second digit of the minute 1:27 -> 1:20
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
 		et = time.Now()
+	} else if start != "" && end == "" {
+
 	} else {
 		var err error
 		st, err = ParseTime(start)
@@ -149,14 +151,18 @@ func PingHost(host string) {
 		case <-tick.C:
 			startTime := time.Now()
 			pr, err := ping.Ping(host)
+			// at the moment all errors are considered timeout errors
 			if err != nil {
-				fmt.Println(err)
+				if te, ok := err.(ping.TimeoutError); ok {
+					fmt.Println(err)
+					err = d.SavePing(te.IP(), startTime, -1)
+				}
 			} else {
 				fmt.Printf("%.3f \n", pr.Time)
-				err := d.SavePing(pr.IP, startTime, float32(pr.Time))
-				if err != nil {
-					log.Fatal(err)
-				}
+				err = d.SavePing(pr.IP, startTime, float32(pr.Time))
+			}
+			if err != nil {
+				log.Fatal(err)
 			}
 		case <-signalChan:
 			os.Exit(0)
