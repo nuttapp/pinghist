@@ -2,6 +2,8 @@ package ping
 
 import (
 	"errors"
+	"fmt"
+	"net"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -92,11 +94,55 @@ func ParsePingOutput(res []byte) (*PingResponse, error) {
 	return pr, nil
 }
 
+type TimeoutError interface {
+	Timeout() bool
+	IP() string
+}
+
+type PingError struct {
+	ip        string
+	msg       string
+	Output    string
+	IsTimeout bool
+}
+
+func (pe PingError) IP() string {
+	return pe.ip
+}
+
+func (pe PingError) Error() string {
+	return pe.msg
+}
+
+func (pe PingError) Timeout() bool {
+	return pe.IsTimeout
+}
+
 // Ping will run the ping command and send 1 ping packet to the given hostOrIP
+// TODO: Add ipv6 regex
 func Ping(hostOrIP string) (*PingResponse, error) {
-	output, err := exec.Command("ping", "-c", "1", hostOrIP).CombinedOutput()
+	var ip string
+	if hostOrIP == "localhost" || hostOrIP == "::1" || hostOrIP == "fe80::1%lo0" {
+		ip = "127.0.0.1"
+	} else if ipRegex.MatchString(hostOrIP) {
+		ip = hostOrIP
+	} else {
+		addrs, err := net.LookupHost(hostOrIP)
+		if err != nil {
+			return nil, fmt.Errorf("ping.Ping: %s", err)
+		}
+		ip = addrs[0]
+	}
+
+	output, err := exec.Command("ping", "-c", "1", ip).CombinedOutput()
 	if err != nil {
-		return nil, errors.New(string(output))
+		err = &PingError{
+			ip:        ip,
+			IsTimeout: true,
+			Output:    string(output),
+			msg:       err.Error(),
+		}
+		return nil, err
 	}
 
 	pr, err := ParsePingOutput(output)
