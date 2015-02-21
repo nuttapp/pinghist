@@ -3,11 +3,8 @@ Ping History
 
 ### A tool for measuring uptime
 
-*Pinghist* is a reporting & troubleshooting tool for long lived servers and services. It pings servers, records the results, and provides you with a command line interface to report on what happened.
-
-
-
-The goal of pinghist is to fill the gap between plain ol ping and full featured services like Pingdom.
+*Pinghist* is a command line tool to capture the latency between servers and help you report on the result over extended periods of time. 
+The goal of the tool is to provide a simple, and reliable command line app that's better than `ping` but not as not as complex as fully hosted monitoring (Pingdom, etc...).
 
 ```
 Ping                 pinghist                Pingdom
@@ -18,17 +15,22 @@ Ping                 pinghist                Pingdom
 
 ### Use cases
 
-- For sys admins, that want to keep track of network connectivity between servers
-- For backend engineers, that want to troubleshoot why services have trouble communicating 
-- For network engineers, that want measure when a router/switch/hub is dropping packets
-- For on-call types, that want fine grained uptime stats
+- For sys admins that want to keep track of network connectivity between servers
+- For network engineers that want measure when a router/switch/hub is dropping packets
+- For backend engineers that want to troubleshoot why services have trouble communicating (maybe you see pings drop when your services start barfing up errors)
+- For nerds that want to track when their ISP gets flakey
+- For on-call types that want fine grained uptime stats
+- For you, because you're beautiful, and I made it for you
 
-### Design 
-* It's designed to ping 10s of servers, not 100s
-* It's designed to store millions of measurements, not billions
-* It's designed to run for minutes and months, not years
-* It's designed to report fine grained detail, it pings every second by default
-* It's designed to have zero dependencies, download it, run, done
+
+### Design goals
+
+Pinghist is designed to scale pretty well on modest hardware. Here are a few design goals I had in mind when first building it. 
+* ping 10s of servers, not 100s
+* store millions of measurements, not billions
+* Run for minutes to months, not years
+* Report on fine grained detail by default (1 ping p/sec)
+* Favor realtime reporting over historical reporting (no materialized reports)
 
 -
 
