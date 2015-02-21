@@ -223,7 +223,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
-			Convey("should return 1 group with lost count = 2", func() {
+			Convey("should return 1 group with Timedout count = 2", func() {
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", time.UTC)
 
 				err := dal.SavePing(ip, start, -1)
@@ -235,7 +235,7 @@ func Test_dal_integration(t *testing.T) {
 				groups, err := dal.GetPings(ip, start, start.Add(1*time.Minute), groupBy)
 				So(err, ShouldBeNil)
 				So(len(groups), ShouldEqual, 1)
-				So(groups[0].Timedout, ShouldEqual, 1)
+				So(groups[0].Timedout, ShouldEqual, 2)
 				// So(sumReceived(groups), ShouldEqual, 30)
 				// So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				// So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
