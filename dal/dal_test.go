@@ -182,6 +182,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
+
 			Convey("should return  4 groups, 15 minutes in each group", func() {
 				seedTestDB(dal, ip, "01/03/15 03:00:00 pm", "01/03/15 06:00:00 pm")
 
@@ -196,6 +197,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 				So(sumReceived(groups), ShouldEqual, 3600)
 			})
+
 			Convey("should return 60 groups, 1 second in each group", func() {
 				seedTestDB(dal, ip, "01/03/15 03:00:00 pm", "01/03/15 03:05:00 pm")
 
@@ -209,6 +211,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
+
 			Convey("should return 30 groups, 1 second in each group", func() {
 				seedTestDB(dal, ip, "01/03/15 02:00:00 pm", "01/03/15 04:00:00 pm")
 
@@ -223,6 +226,7 @@ func Test_dal_integration(t *testing.T) {
 				So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
+
 			Convey("should return 1 group with Timedout count = 2", func() {
 				start, _ := time.ParseInLocation(tfmt, "01/03/15 03:00:00 pm", time.UTC)
 
@@ -240,6 +244,7 @@ func Test_dal_integration(t *testing.T) {
 				// So(groups[0].Start, ShouldHappenOnOrAfter, start)
 				// So(groups[len(groups)-1].End, ShouldHappenOnOrBefore, endti)
 			})
+
 			Convey("should return error when it can't find bucket", func() {
 				db, err := bolt.Open(dal.fileName, 0600, nil)
 				So(err, ShouldBeNil)
@@ -254,11 +259,13 @@ func Test_dal_integration(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, BucketNotFoundError)
 			})
+
 			Convey("should return error when it can't open db ", func() {
 				dal.fileName = ""
 				_, err := dal.GetPings("127.0.0.1", time.Now(), time.Now(), 1*time.Second)
 				So(err, ShouldNotBeNil)
 			})
+
 			Convey("should return error when it deserialize key timestamp", func() {
 				ip := "127.0.0.1"
 				startTime := time.Now()
@@ -281,6 +288,7 @@ func Test_dal_integration(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(err.Error(), ShouldContainSubstring, KeyTimestampParsingError)
 			})
+
 			Convey("should return error when it can't deserialize ping response (value of key)", func() {
 				ip := "127.0.0.1"
 				startTime := time.Now()
