@@ -117,4 +117,4 @@ $ pinghist -start 01/03 6:00pm -end 1/03 7:00pm -groupby 15min
 
 -
 
-### Usage & documentation - http://www.pinghist.io
+### Usage & documentation - 
