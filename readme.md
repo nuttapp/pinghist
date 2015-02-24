@@ -3,7 +3,7 @@ Ping History
 
 ### A tool for measuring uptime
 
-*Pinghist* is a command line tool to capture the latency between servers and help you report on the result over extended periods of time. 
+*Pinghist* is a command line tool to capture the latency between servers and report on the result over extended periods of time. 
 The goal of the tool is to provide a simple, and reliable command line app that's better than `ping` but not as not as complex as fully hosted monitoring (Pingdom, etc...).
 
 ```
