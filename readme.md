@@ -3,43 +3,50 @@ Ping History
 
 ### A tool for measuring uptime
 
-*Pinghist* is a command line tool to capture the latency between servers and report on the result over extended periods of time. 
-The goal of the tool is to provide a simple, and reliable command line app that's better than `ping` but not as not as complex as fully hosted monitoring (Pingdom, etc...).
+*Pinghist* is a command line tool to capture the latency between servers over time. The goal of the tool is to provide a simple and reliable command line app that's better than ping but not as not as complex as hosted monitoring (sites like Pingdom).
 
 ```
-Ping                 pinghist                Pingdom
+ping                 pinghist                Pingdom
 |-----------------------|--------------------------|
                       booya
 ```
 
 
-### Use cases
+#### Great for
 
-- For sys admins that want to keep track of network connectivity between servers
-- For network engineers that want measure when a router/switch/hub is dropping packets
-- For backend engineers that want to troubleshoot why services have trouble communicating (maybe you see pings drop when your services start barfing up errors)
-- For nerds that want to track when their ISP gets flakey
-- For on-call types that want fine grained uptime stats
-- For you, because you're beautiful, and I made it for you
+- backend engineers that want troubleshoot network connectivity between servers
+- network engineers that want measure when a router/switch/hub is acting up
+- on-call types that want fine grained latency stats to help them fix a problem
+- nerds that want to know when their internet poops out
+- gamers obsessed with their ping
+
+#### Useful when
+
+- you need ping one to 10s of servers
+- you need to measure latency over minutes, hours or weeks
 
 
-### Design goals
-
-Pinghist is designed to scale pretty well on modest hardware. Here are a few design goals I had in mind when first building it. 
-* ping 10s of servers, not 100s
-* store millions of measurements, not billions
-* Run for minutes to months, not years
-* Report on fine grained detail by default (1 ping p/sec)
-* Favor realtime reporting over historical reporting (no materialized reports)
+#### Not so useful when
+- you need to ping 100s of servers
+- you need month-over-month reporting
 
 -
 
-###Examples 
+### Examples 
 
-Detail 24 hours of pings, starting on Jan 3rd @ 5PM, and group them by 1 hour. The avg isn't great but at least it's consistent, as is the standard deviation. 
+Let's ping our home router to measure how often our wifi signal dies. Pinghist will ping 192.168.1.1 every second until it's killed.
+```
+$ pinghist -h 192.168.1.1
+4.653
+4.259
+4.306
+...
+```
+
+Suppose you've been running the command above for 3 hours. Assuming you started pinghist on Jan 3rd at 5pm the following will detail 3 hours of pings. The min, avg, max, std dev, recevied/lost count are all calculated based on the value of `-groupby`.
 
 ```
-$ pinghist -start 01/03 5:00pm -end 1/04 5:00pm -groupby 1hr
+$ pinghist -start 01/03 5:00pm -end 1/04 8:00pm -groupby 1h
 ```
 ```
       TIME      | MIN |  AVG  |  MAX   | STD DEV | RECEIVED | LOST
@@ -47,28 +54,6 @@ $ pinghist -start 01/03 5:00pm -end 1/04 5:00pm -groupby 1hr
   01/03 05:00pm | 6ms | 749ms | 1500ms |    34ms |     3600 |    0
   01/03 06:00pm | 5ms | 750ms | 1500ms |    41ms |     3600 |    0
   01/03 07:00pm | 5ms | 749ms | 1500ms |    34ms |     3600 |    0
-  01/03 08:00pm | 5ms | 742ms | 1500ms |    31ms |     3600 |    0
-  01/03 09:00pm | 5ms | 741ms | 1499ms |    32ms |     3600 |    0
-  01/03 10:00pm | 6ms | 763ms | 1499ms |    32ms |     3600 |    0
-  01/03 11:00pm | 6ms | 752ms | 1500ms |    33ms |     3600 |    0
-  01/04 12:00am | 5ms | 758ms | 1500ms |    34ms |     3600 |    0
-  01/04 01:00am | 5ms | 755ms | 1500ms |    32ms |     3600 |    0
-  01/04 02:00am | 5ms | 751ms | 1500ms |    31ms |     3600 |    0
-  01/04 03:00am | 5ms | 768ms | 1500ms |    30ms |     3600 |    0
-  01/04 04:00am | 5ms | 752ms | 1500ms |    30ms |     3600 |    0
-  01/04 05:00am | 6ms | 746ms | 1500ms |    32ms |     3600 |    0
-  01/04 06:00am | 5ms | 753ms | 1499ms |    34ms |     3600 |    0
-  01/04 07:00am | 5ms | 757ms | 1500ms |    37ms |     3600 |    0
-  01/04 08:00am | 5ms | 758ms | 1499ms |    36ms |     3600 |    0
-  01/04 09:00am | 5ms | 767ms | 1500ms |    31ms |     3600 |    0
-  01/04 10:00am | 5ms | 754ms | 1498ms |    31ms |     3600 |    0
-  01/04 11:00am | 5ms | 744ms | 1499ms |    30ms |     3600 |    0
-  01/04 12:00pm | 5ms | 743ms | 1500ms |    31ms |     3600 |    0
-  01/04 01:00pm | 5ms | 745ms | 1499ms |    36ms |     3600 |    0
-  01/04 02:00pm | 5ms | 751ms | 1499ms |    34ms |     3600 |    0
-  01/04 03:00pm | 5ms | 747ms | 1499ms |    33ms |     3600 |    0
-  01/04 04:00pm | 5ms | 756ms | 1500ms |    35ms |     3600 |    0
-
 ```
 
 Same detail as above using 24hr time.
