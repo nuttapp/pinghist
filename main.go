@@ -109,17 +109,20 @@ func main() {
 		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the second digit of the minute 1:27 -> 1:20
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
 		et = time.Now()
-	} else if start != "" && end == "" {
-
 	} else {
 		var err error
 		st, err = ParseTime(start)
 		if err != nil {
 			log.Fatal("Can't parse start time")
 		}
-		et, err = ParseTime(end)
-		if err != nil {
-			log.Fatal("Can't parse end time")
+
+		if end == "*" || end == "" {
+			et = time.Now().AddDate(5, 0, 0)
+		} else {
+			et, err = ParseTime(end)
+			if err != nil {
+				log.Fatal("Can't parse end time")
+			}
 		}
 	}
 	if groupBy == "" {
@@ -130,7 +133,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Can't parse groupby: " + err.Error())
 	}
+
 	fmt.Printf("\nResults for %s, from %s, to %s, grouped by %s\n\n", ip, st.Format(tableTimeFmt), et.Format(tableTimeFmt), groupBy)
+
 	groups, err := d.GetPings(ip, st, et, dur)
 	if err != nil {
 		log.Fatal("Couldn't retreive pings: %s", err)
