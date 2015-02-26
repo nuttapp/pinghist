@@ -110,6 +110,10 @@ func main() {
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
 		et = time.Now()
 	} else {
+		if ip == "" {
+			ip = GetLastPingedIP()
+		}
+
 		var err error
 		st, err = ParseTime(start)
 		if err != nil {
