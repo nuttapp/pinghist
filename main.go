@@ -103,7 +103,7 @@ func main() {
 	}
 
 	var st, et time.Time
-	if start == "" && end == "" && groupBy == "" {
+	if start == "" && end == "" {
 		t := time.Now().Add(-60 * time.Minute)
 		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the second digit of the minute 1:27 -> 1:20
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
