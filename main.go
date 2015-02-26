@@ -104,16 +104,11 @@ func main() {
 
 	var st, et time.Time
 	if start == "" && end == "" && groupBy == "" {
-		ip = GetLastPingedIP()
 		t := time.Now().Add(-60 * time.Minute)
 		mi := math.Floor(float64(t.Minute())/10.0) * 10 // drop the second digit of the minute 1:27 -> 1:20
 		st = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), int(mi), 0, 0, t.Location())
 		et = time.Now()
 	} else {
-		if ip == "" {
-			ip = GetLastPingedIP()
-		}
-
 		var err error
 		st, err = ParseTime(start)
 		if err != nil {
@@ -128,6 +123,9 @@ func main() {
 				log.Fatal("Can't parse end time")
 			}
 		}
+	}
+	if ip == "" {
+		ip = GetLastPingedIP()
 	}
 	if groupBy == "" {
 		groupBy = "10m"
