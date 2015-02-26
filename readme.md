@@ -45,7 +45,7 @@ $ pinghist -h 192.168.1.1
 Suppose you've been running the command above for 3 hours. Assuming you started pinghist on Jan 3rd at 5pm the following will detail 3 hours of pings. The min, avg, max, std dev, recevied/lost count are all calculated based on the value of `-groupby`.
 
 ```
-$ pinghist -start 01/03 5:00pm -end 1/04 8:00pm -groupby 1h
+$ pinghist -start "01/03 5:00pm" -end "1/03 8:00pm" -groupby 1h
 ```
 ```
       TIME      | MIN |  AVG  |  MAX   | STD DEV | RECEIVED | LOST
@@ -55,17 +55,9 @@ $ pinghist -start 01/03 5:00pm -end 1/04 8:00pm -groupby 1h
   01/03 07:00pm | 5ms | 749ms | 1500ms |    34ms |     3600 |    0
 ```
 
-Same detail as above using 24hr time.
+Same as above using 24hr time.
 ```
-$ pinghist -start 01/03 17:00 -end 1/04 17:00 -groupby 1hr
-```
-```
-      TIME      | MIN |  AVG  |  MAX   | STD DEV | RECEIVED | LOST
-+---------------+-----+-------+--------+---------+----------+------+
-  01/03 05:00pm | 6ms | 749ms | 1500ms |    34ms |     3600 |    0
-  01/03 06:00pm | 5ms | 750ms | 1500ms |    41ms |     3600 |    0
-...etc...
-
+$ pinghist -start "01/03 17:00" -end "1/04 20:00" -groupby 1hr
 ```
 
 ###Example 2
