@@ -11,11 +11,10 @@ ping                 pinghist                Pingdom
                       booya
 ```
 
-
 #### Great for
 
 - backend engineers that want troubleshoot network connectivity between servers
-- network engineers that want measure when a router/switch/hub is acting up
+- network engineers that want figure out when a router/switch/hub is acting up
 - on-call types that want fine grained latency stats to help them fix a problem
 - nerds that want to know when their internet poops out
 - gamers obsessed with their ping
@@ -26,7 +25,7 @@ ping                 pinghist                Pingdom
 - you need to measure latency over minutes, hours or weeks
 
 
-#### Not so useful when
+#### Not as useful when
 - you need to ping 100s of servers
 - you need month-over-month reporting
 
