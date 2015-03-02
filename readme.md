@@ -98,4 +98,4 @@ $ pinghist -start "1/3 6:00 pm" -end "1/3 7:00 pm" -groupby 15min
 
 -
 
-### Usage & documentation - 
+#### [Download](https://github.com/nuttapp/pinghist/releases/tag/v0.1)
