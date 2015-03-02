@@ -45,7 +45,7 @@ $ pinghist -h 192.168.1.1
 Suppose you've been running the command above for 3 hours. Assuming you started pinghist on Jan 3rd at 5pm the following will detail 3 hours of pings. The min, avg, max, std dev, recevied/lost count are all calculated based on the value of `-groupby`.
 
 ```
-$ pinghist -start "01/03 5:00pm" -end "1/03 8:00pm" -groupby 1h
+$ pinghist -start "1/3 5:00 pm" -end "1/3 8:00 pm" -groupby 1h
 ```
 ```
       TIME      | MIN |  AVG  |  MAX   | STD DEV | RECEIVED | LOST
@@ -60,11 +60,16 @@ Same as above using 24hr time.
 $ pinghist -start "01/03 17:00" -end "1/04 20:00" -groupby 1hr
 ```
 
+You can also omit the date entirely, pinghist assumes the current date
+```
+$ pinghist -start "17:00" -end "20:00" -groupby 1hr
+```
+
 ###Example 2
 
 Detail 1 hour of pings, starting on Jan 3rd @ 4PM, and group them by 15 minutes. Things are pretty cool, avg isn't great but it's consistent, as is standard deviation. We didn't drop a single ping packet.
 ```
-$ pinghist -start 01/03 4:00pm -end 1/03 5:00pm -groupby 15min
+$ pinghist -start "1/3 4:00 pm" -end "1/3 5:00 pm" -groupby 15min
 ```
 ```
       TIME      |  MIN  |  AVG   |   MAX   | STD DEV | RECEIVED | LOST
@@ -80,7 +85,7 @@ $ pinghist -start 01/03 4:00pm -end 1/03 5:00pm -groupby 15min
 Detail 1 hour of pings, starting on Jan 3rd @ 6PM, and group them by 15 minutes. Something fishy happened between 6 & 6:15pm, the average jumped to 3 seconds. Standard deviation is large, which means average is swinging wildly. And 217 pings timed out.
 
 ```
-$ pinghist -start 01/03 6:00pm -end 1/03 7:00pm -groupby 15min
+$ pinghist -start "1/3 6:00 pm" -end "1/3 7:00 pm" -groupby 15min
 ```
 ```
       TIME      |  MIN   |  AVG    |   MAX   | STD DEV | RECEIVED | LOST
